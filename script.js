@@ -10,6 +10,7 @@ const totalCreditsEl = document.getElementById('totalCredits');
 const totalNewCreditsEl = document.getElementById('totalNewCredits');
 const lastUpdateEl = document.getElementById('lastUpdate');
 const newFileBtn = document.getElementById('newFileBtn');
+const resetAllBtn = document.getElementById('resetAllBtn');
 
 let clientsData = [];
 let currentSortColumn = 'credits';
@@ -99,6 +100,41 @@ newFileBtn.addEventListener('click', () => {
     localStorage.removeItem('museLab_sortSettings');
     localStorage.removeItem('museLab_lastUpdate');
     localStorage.removeItem('museLab_previousData');
+});
+
+// Gestion de la réinitialisation totale
+resetAllBtn.addEventListener('click', () => {
+    const confirmation = confirm(
+        '⚠️ ATTENTION ⚠️\n\n' +
+        'Êtes-vous sûr de vouloir tout réinitialiser ?\n\n' +
+        'Cette action supprimera :\n' +
+        '• Toutes les données actuelles\n' +
+        '• L\'historique des mises à jour\n' +
+        '• Les nouveaux crédits calculés\n\n' +
+        'Cette action est IRRÉVERSIBLE.'
+    );
+
+    if (confirmation) {
+        // Supprimer toutes les données du localStorage
+        localStorage.removeItem('museLab_clientsData');
+        localStorage.removeItem('museLab_sortSettings');
+        localStorage.removeItem('museLab_lastUpdate');
+        localStorage.removeItem('museLab_previousData');
+
+        // Réinitialiser les variables
+        clientsData = [];
+        lastUpdateDate = null;
+        currentSortColumn = 'credits';
+        currentSortOrder = 'desc';
+
+        // Retourner à l'écran d'upload
+        resultsSection.style.display = 'none';
+        dropZone.style.display = 'flex';
+        fileInput.value = '';
+
+        // Notification de succès
+        alert('✅ Toutes les données ont été réinitialisées avec succès.');
+    }
 });
 
 // Fonction pour traiter le fichier Excel

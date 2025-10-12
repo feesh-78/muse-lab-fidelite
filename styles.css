@@ -138,6 +138,11 @@ main {
     gap: 20px;
 }
 
+.header-buttons {
+    display: flex;
+    gap: 12px;
+}
+
 .results-header h2 {
     color: #333;
     font-size: 2em;
@@ -312,6 +317,25 @@ tbody td {
     box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
 }
 
+.btn-danger {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    border: none;
+    color: white;
+    padding: 12px 24px;
+    font-size: 0.95em;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.btn-danger:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+    background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+}
+
 .btn-secondary {
     background: white;
     border: 2px solid #667eea;
@@ -347,7 +371,13 @@ tbody td {
         gap: 15px;
     }
 
-    .btn-primary {
+    .header-buttons {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .btn-primary,
+    .btn-danger {
         width: 100%;
     }
 
