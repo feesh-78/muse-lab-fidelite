@@ -1,4 +1,11 @@
 // Éléments du DOM
+const loginScreen = document.getElementById('loginScreen');
+const mainContainer = document.getElementById('mainContainer');
+const usernameInput = document.getElementById('usernameInput');
+const passwordInput = document.getElementById('passwordInput');
+const loginBtn = document.getElementById('loginBtn');
+const loginError = document.getElementById('loginError');
+const logoutBtn = document.getElementById('logoutBtn');
 const dropZone = document.getElementById('dropZone');
 const fileInput = document.getElementById('fileInput');
 const loadingIndicator = document.getElementById('loadingIndicator');
@@ -23,10 +30,81 @@ let currentSortOrder = 'desc';
 let lastUpdateDate = null;
 let history = [];
 
+// Identifiants administrateur (à stocker de manière sécurisée en production)
+const ADMIN_USERNAME = 'JalyaStudio';
+const ADMIN_PASSWORD = 'Jalya187';
+
+// Vérifier si l'utilisateur est connecté
+function checkAuth() {
+    return sessionStorage.getItem('authenticated') === 'true';
+}
+
+// Connexion
+function login() {
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value;
+
+    if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
+        sessionStorage.setItem('authenticated', 'true');
+        loginError.style.display = 'none';
+        showMainApp();
+    } else {
+        loginError.style.display = 'block';
+        passwordInput.value = '';
+        passwordInput.focus();
+    }
+}
+
+// Déconnexion
+function logout() {
+    const confirmation = confirm('Êtes-vous sûr de vouloir vous déconnecter ?');
+    if (confirmation) {
+        sessionStorage.removeItem('authenticated');
+        showLoginScreen();
+    }
+}
+
+// Afficher l'écran de connexion
+function showLoginScreen() {
+    loginScreen.style.display = 'flex';
+    mainContainer.style.display = 'none';
+    usernameInput.value = '';
+    passwordInput.value = '';
+    loginError.style.display = 'none';
+    usernameInput.focus();
+}
+
+// Afficher l'application principale
+function showMainApp() {
+    loginScreen.style.display = 'none';
+    mainContainer.style.display = 'block';
+}
+
 // Charger les données sauvegardées au démarrage
 document.addEventListener('DOMContentLoaded', async () => {
-    await loadSavedData();
-    setupEventListeners();
+    if (checkAuth()) {
+        showMainApp();
+        await loadSavedData();
+        setupEventListeners();
+    } else {
+        showLoginScreen();
+    }
+
+    // Événements de connexion
+    loginBtn.addEventListener('click', login);
+    passwordInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            login();
+        }
+    });
+    usernameInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            passwordInput.focus();
+        }
+    });
+
+    // Événement de déconnexion
+    logoutBtn.addEventListener('click', logout);
 });
 
 // Fonction pour charger les données sauvegardées
