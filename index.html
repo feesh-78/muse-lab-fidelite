@@ -35,6 +35,7 @@
                     <div class="header-top">
                         <h2>Résultats du Système de Fidélité</h2>
                         <div class="header-buttons">
+                            <button id="historyBtn" class="btn-secondary">📜 Historique</button>
                             <button id="newFileBtn" class="btn-primary">Charger un nouveau fichier</button>
                             <button id="resetAllBtn" class="btn-danger">Réinitialiser tout</button>
                         </div>
@@ -75,6 +76,21 @@
                         <tbody id="resultsBody">
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- Modal Historique -->
+            <div id="historyModal" class="modal" style="display: none;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>📜 Historique des mises à jour</h2>
+                        <button class="close-modal" id="closeHistoryModal">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div id="historyList" class="history-list">
+                            <p class="no-history">Aucun historique disponible.</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>

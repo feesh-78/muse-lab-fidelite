@@ -11,11 +11,16 @@ const totalNewCreditsEl = document.getElementById('totalNewCredits');
 const lastUpdateEl = document.getElementById('lastUpdate');
 const newFileBtn = document.getElementById('newFileBtn');
 const resetAllBtn = document.getElementById('resetAllBtn');
+const historyBtn = document.getElementById('historyBtn');
+const historyModal = document.getElementById('historyModal');
+const closeHistoryModal = document.getElementById('closeHistoryModal');
+const historyList = document.getElementById('historyList');
 
 let clientsData = [];
 let currentSortColumn = 'credits';
 let currentSortOrder = 'desc';
 let lastUpdateDate = null;
+let history = [];
 
 // Charger les données sauvegardées au démarrage
 document.addEventListener('DOMContentLoaded', () => {
@@ -47,6 +52,17 @@ function loadSavedData() {
             console.error('Erreur lors du chargement des données:', error);
         }
     }
+
+    // Charger l'historique
+    const savedHistory = localStorage.getItem('museLab_history');
+    if (savedHistory) {
+        try {
+            history = JSON.parse(savedHistory);
+        } catch (error) {
+            console.error('Erreur lors du chargement de l\'historique:', error);
+            history = [];
+        }
+    }
 }
 
 // Fonction pour sauvegarder les données
@@ -58,6 +74,97 @@ function saveData() {
     }));
     if (lastUpdateDate) {
         localStorage.setItem('museLab_lastUpdate', lastUpdateDate);
+    }
+}
+
+// Fonction pour sauvegarder dans l'historique
+function saveToHistory() {
+    const historyEntry = {
+        date: lastUpdateDate,
+        timestamp: new Date().getTime(),
+        clientsData: JSON.parse(JSON.stringify(clientsData)),
+        totalClients: clientsData.length,
+        totalCredits: clientsData.reduce((sum, c) => sum + c.credits, 0),
+        totalNewCredits: clientsData.reduce((sum, c) => sum + (c.newCredits || 0), 0)
+    };
+
+    // Ajouter au début du tableau
+    history.unshift(historyEntry);
+
+    // Limiter à 10 entrées
+    if (history.length > 10) {
+        history = history.slice(0, 10);
+    }
+
+    // Sauvegarder dans localStorage
+    localStorage.setItem('museLab_history', JSON.stringify(history));
+}
+
+// Fonction pour afficher l'historique
+function displayHistory() {
+    if (history.length === 0) {
+        historyList.innerHTML = '<p class="no-history">Aucun historique disponible.</p>';
+        return;
+    }
+
+    let html = '';
+    history.forEach((entry, index) => {
+        html += `
+            <div class="history-item">
+                <div class="history-info">
+                    <div class="history-date">${entry.date}</div>
+                    <div class="history-stats">
+                        <span><strong>${entry.totalClients}</strong> clientes</span>
+                        <span><strong>${entry.totalCredits}</strong> crédits</span>
+                        <span class="new-credits-badge">+${entry.totalNewCredits} nouveaux</span>
+                    </div>
+                </div>
+                <div class="history-actions">
+                    <button class="btn-restore" onclick="restoreFromHistory(${index})">Restaurer</button>
+                    <button class="btn-delete-history" onclick="deleteHistoryEntry(${index})">✕</button>
+                </div>
+            </div>
+        `;
+    });
+
+    historyList.innerHTML = html;
+}
+
+// Fonction pour restaurer une version de l'historique
+function restoreFromHistory(index) {
+    const entry = history[index];
+    if (!entry) return;
+
+    const confirmation = confirm(
+        `Voulez-vous restaurer la version du ${entry.date} ?\n\n` +
+        `Cette version contient :\n` +
+        `• ${entry.totalClients} clientes\n` +
+        `• ${entry.totalCredits} crédits utilisés\n` +
+        `• ${entry.totalNewCredits} nouveaux crédits`
+    );
+
+    if (confirmation) {
+        clientsData = JSON.parse(JSON.stringify(entry.clientsData));
+        lastUpdateDate = entry.date;
+
+        saveData();
+        displayResults();
+
+        historyModal.style.display = 'none';
+
+        alert('✅ Version restaurée avec succès !');
+    }
+}
+
+// Fonction pour supprimer une entrée de l'historique
+function deleteHistoryEntry(index) {
+    const entry = history[index];
+    const confirmation = confirm(`Supprimer la version du ${entry.date} de l'historique ?`);
+
+    if (confirmation) {
+        history.splice(index, 1);
+        localStorage.setItem('museLab_history', JSON.stringify(history));
+        displayHistory();
     }
 }
 
@@ -120,12 +227,14 @@ resetAllBtn.addEventListener('click', () => {
         localStorage.removeItem('museLab_sortSettings');
         localStorage.removeItem('museLab_lastUpdate');
         localStorage.removeItem('museLab_previousData');
+        localStorage.removeItem('museLab_history');
 
         // Réinitialiser les variables
         clientsData = [];
         lastUpdateDate = null;
         currentSortColumn = 'credits';
         currentSortOrder = 'desc';
+        history = [];
 
         // Retourner à l'écran d'upload
         resultsSection.style.display = 'none';
@@ -242,6 +351,9 @@ function processExcelData(data) {
 
     // Sauvegarder les données
     saveData();
+
+    // Sauvegarder dans l'historique
+    saveToHistory();
 
     displayResults();
 }
@@ -371,5 +483,23 @@ function setupEventListeners() {
     // Gestion de la recherche
     searchInput.addEventListener('input', (e) => {
         displayResults(e.target.value);
+    });
+
+    // Gestion du bouton historique
+    historyBtn.addEventListener('click', () => {
+        displayHistory();
+        historyModal.style.display = 'flex';
+    });
+
+    // Fermer la modal
+    closeHistoryModal.addEventListener('click', () => {
+        historyModal.style.display = 'none';
+    });
+
+    // Fermer en cliquant en dehors de la modal
+    historyModal.addEventListener('click', (e) => {
+        if (e.target === historyModal) {
+            historyModal.style.display = 'none';
+        }
     });
 }
