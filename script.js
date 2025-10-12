@@ -11,6 +11,7 @@ const totalNewCreditsEl = document.getElementById('totalNewCredits');
 const lastUpdateEl = document.getElementById('lastUpdate');
 const newFileBtn = document.getElementById('newFileBtn');
 const resetAllBtn = document.getElementById('resetAllBtn');
+const downloadBtn = document.getElementById('downloadBtn');
 const historyBtn = document.getElementById('historyBtn');
 const historyModal = document.getElementById('historyModal');
 const closeHistoryModal = document.getElementById('closeHistoryModal');
@@ -120,6 +121,7 @@ function displayHistory() {
                     </div>
                 </div>
                 <div class="history-actions">
+                    <button class="btn-download-history" onclick="downloadHistoryVersion(${index})">⬇️</button>
                     <button class="btn-restore" onclick="restoreFromHistory(${index})">Restaurer</button>
                     <button class="btn-delete-history" onclick="deleteHistoryEntry(${index})">✕</button>
                 </div>
@@ -166,6 +168,59 @@ function deleteHistoryEntry(index) {
         localStorage.setItem('museLab_history', JSON.stringify(history));
         displayHistory();
     }
+}
+
+// Fonction pour télécharger les données en Excel
+function downloadExcel(data, filename) {
+    // Créer un nouveau workbook
+    const wb = XLSX.utils.book_new();
+
+    // Préparer les données pour Excel
+    const excelData = data.map(client => ({
+        'Prénom': client.prenom,
+        'Nom': client.nom,
+        'Crédits Utilisés': client.credits,
+        'Nouveaux Crédits': client.newCredits || 0
+    }));
+
+    // Créer la feuille de calcul
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    // Définir la largeur des colonnes
+    ws['!cols'] = [
+        { wch: 15 }, // Prénom
+        { wch: 15 }, // Nom
+        { wch: 18 }, // Crédits Utilisés
+        { wch: 18 }  // Nouveaux Crédits
+    ];
+
+    // Ajouter la feuille au workbook
+    XLSX.utils.book_append_sheet(wb, ws, 'Fidélité');
+
+    // Télécharger le fichier
+    XLSX.writeFile(wb, filename);
+}
+
+// Fonction pour télécharger la version actuelle
+function downloadCurrentVersion() {
+    const date = new Date().toLocaleString('fr-FR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    }).replace(/[/:]/g, '-').replace(', ', '_');
+
+    downloadExcel(clientsData, `MuseLab_Fidelite_${date}.xlsx`);
+}
+
+// Fonction pour télécharger une version de l'historique
+function downloadHistoryVersion(index) {
+    const entry = history[index];
+    if (!entry) return;
+
+    const dateFormatted = entry.date.replace(/[/:]/g, '-').replace(', ', '_');
+    downloadExcel(entry.clientsData, `MuseLab_Fidelite_${dateFormatted}.xlsx`);
 }
 
 // Gestion du drag & drop
@@ -483,6 +538,11 @@ function setupEventListeners() {
     // Gestion de la recherche
     searchInput.addEventListener('input', (e) => {
         displayResults(e.target.value);
+    });
+
+    // Gestion du bouton de téléchargement
+    downloadBtn.addEventListener('click', () => {
+        downloadCurrentVersion();
     });
 
     // Gestion du bouton historique
