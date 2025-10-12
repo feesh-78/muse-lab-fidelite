@@ -1,0 +1,11 @@
+# Fichiers système
+.DS_Store
+Thumbs.db
+
+# Fichiers de sauvegarde
+*~
+*.swp
+*.swo
+
+# Logs
+*.log

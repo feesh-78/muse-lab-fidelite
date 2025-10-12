@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Muse Lab - Système de Fidélité</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>The Muse Lab</h1>
+            <p class="subtitle">Système de Fidélité</p>
+        </header>
+
+        <main>
+            <div class="upload-zone" id="dropZone">
+                <div class="upload-content">
+                    <svg class="upload-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <p class="upload-text">Glissez-déposez votre fichier Excel ici</p>
+                    <p class="upload-subtext">ou cliquez pour sélectionner</p>
+                    <input type="file" id="fileInput" accept=".xlsx, .xls" style="display: none;">
+                </div>
+            </div>
+
+            <div id="loadingIndicator" class="loading" style="display: none;">
+                <div class="spinner"></div>
+                <p>Traitement du fichier en cours...</p>
+            </div>
+
+            <div id="resultsSection" style="display: none;">
+                <div class="results-header">
+                    <div class="header-top">
+                        <h2>Résultats du Système de Fidélité</h2>
+                        <button id="newFileBtn" class="btn-primary">Charger un nouveau fichier</button>
+                    </div>
+                    <div class="last-update">
+                        <p><strong>Dernière mise à jour :</strong> <span id="lastUpdate">-</span></p>
+                    </div>
+                    <div class="stats">
+                        <div class="stat-card">
+                            <span class="stat-label">Total Clientes</span>
+                            <span class="stat-value" id="totalClients">0</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Total Crédits Utilisés</span>
+                            <span class="stat-value" id="totalCredits">0</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Nouveaux Crédits</span>
+                            <span class="stat-value" id="totalNewCredits">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="search-box">
+                    <input type="text" id="searchInput" placeholder="Rechercher par nom ou prénom...">
+                </div>
+
+                <div class="table-container">
+                    <table id="resultsTable">
+                        <thead>
+                            <tr>
+                                <th>Prénom</th>
+                                <th>Nom</th>
+                                <th>Crédits Utilisés</th>
+                                <th>Nouveaux Crédits</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultsBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
