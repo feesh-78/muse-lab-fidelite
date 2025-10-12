@@ -24,81 +24,138 @@ let lastUpdateDate = null;
 let history = [];
 
 // Charger les données sauvegardées au démarrage
-document.addEventListener('DOMContentLoaded', () => {
-    loadSavedData();
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadSavedData();
     setupEventListeners();
 });
 
 // Fonction pour charger les données sauvegardées
-function loadSavedData() {
-    const savedData = localStorage.getItem('museLab_clientsData');
-    if (savedData) {
-        try {
-            clientsData = JSON.parse(savedData);
-            const savedSort = localStorage.getItem('museLab_sortSettings');
-            if (savedSort) {
-                const sortSettings = JSON.parse(savedSort);
-                currentSortColumn = sortSettings.column;
-                currentSortOrder = sortSettings.order;
-            }
-            const savedDate = localStorage.getItem('museLab_lastUpdate');
-            if (savedDate) {
-                lastUpdateDate = savedDate;
-            }
+async function loadSavedData() {
+    try {
+        // Charger les données actuelles depuis Supabase
+        const { data: currentData, error: currentError } = await supabase
+            .from('current_data')
+            .select('*')
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .single();
+
+        if (currentError && currentError.code !== 'PGRST116') {
+            console.error('Erreur lors du chargement des données:', currentError);
+        }
+
+        if (currentData) {
+            clientsData = currentData.data || [];
+            currentSortColumn = currentData.sort_column || 'credits';
+            currentSortOrder = currentData.sort_order || 'desc';
+            lastUpdateDate = currentData.last_update;
+
             if (clientsData.length > 0) {
                 dropZone.style.display = 'none';
                 displayResults();
             }
-        } catch (error) {
-            console.error('Erreur lors du chargement des données:', error);
         }
-    }
 
-    // Charger l'historique
-    const savedHistory = localStorage.getItem('museLab_history');
-    if (savedHistory) {
-        try {
-            history = JSON.parse(savedHistory);
-        } catch (error) {
-            console.error('Erreur lors du chargement de l\'historique:', error);
-            history = [];
+        // Charger l'historique depuis Supabase
+        const { data: historyData, error: historyError } = await supabase
+            .from('history_data')
+            .select('*')
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        if (historyError) {
+            console.error('Erreur lors du chargement de l\'historique:', historyError);
+        } else if (historyData) {
+            history = historyData.map(entry => ({
+                date: entry.date,
+                timestamp: entry.timestamp,
+                clientsData: entry.clients_data,
+                totalClients: entry.total_clients,
+                totalCredits: entry.total_credits,
+                totalNewCredits: entry.total_new_credits
+            }));
         }
+    } catch (error) {
+        console.error('Erreur générale lors du chargement:', error);
     }
 }
 
 // Fonction pour sauvegarder les données
-function saveData() {
-    localStorage.setItem('museLab_clientsData', JSON.stringify(clientsData));
-    localStorage.setItem('museLab_sortSettings', JSON.stringify({
-        column: currentSortColumn,
-        order: currentSortOrder
-    }));
-    if (lastUpdateDate) {
-        localStorage.setItem('museLab_lastUpdate', lastUpdateDate);
+async function saveData() {
+    try {
+        // Supprimer toutes les entrées existantes
+        await supabase.from('current_data').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+        // Insérer les nouvelles données
+        const { error } = await supabase
+            .from('current_data')
+            .insert({
+                data: clientsData,
+                last_update: lastUpdateDate,
+                sort_column: currentSortColumn,
+                sort_order: currentSortOrder
+            });
+
+        if (error) {
+            console.error('Erreur lors de la sauvegarde:', error);
+        }
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde:', error);
     }
 }
 
 // Fonction pour sauvegarder dans l'historique
-function saveToHistory() {
-    const historyEntry = {
-        date: lastUpdateDate,
-        timestamp: new Date().getTime(),
-        clientsData: JSON.parse(JSON.stringify(clientsData)),
-        totalClients: clientsData.length,
-        totalCredits: clientsData.reduce((sum, c) => sum + c.credits, 0),
-        totalNewCredits: clientsData.reduce((sum, c) => sum + (c.newCredits || 0), 0)
-    };
+async function saveToHistory() {
+    try {
+        const historyEntry = {
+            date: lastUpdateDate,
+            timestamp: new Date().getTime(),
+            clients_data: JSON.parse(JSON.stringify(clientsData)),
+            total_clients: clientsData.length,
+            total_credits: clientsData.reduce((sum, c) => sum + c.credits, 0),
+            total_new_credits: clientsData.reduce((sum, c) => sum + (c.newCredits || 0), 0)
+        };
 
-    // Ajouter au début du tableau
-    history.unshift(historyEntry);
+        // Insérer dans Supabase
+        const { error } = await supabase
+            .from('history_data')
+            .insert(historyEntry);
 
-    // Limiter à 10 entrées
-    if (history.length > 10) {
-        history = history.slice(0, 10);
+        if (error) {
+            console.error('Erreur lors de la sauvegarde de l\'historique:', error);
+        } else {
+            // Mettre à jour l'historique local
+            history.unshift({
+                date: lastUpdateDate,
+                timestamp: historyEntry.timestamp,
+                clientsData: historyEntry.clients_data,
+                totalClients: historyEntry.total_clients,
+                totalCredits: historyEntry.total_credits,
+                totalNewCredits: historyEntry.total_new_credits
+            });
+
+            // Limiter à 10 entrées localement
+            if (history.length > 10) {
+                history = history.slice(0, 10);
+            }
+
+            // Supprimer les anciennes entrées dans Supabase (garder seulement les 10 dernières)
+            const { data: allHistory } = await supabase
+                .from('history_data')
+                .select('id')
+                .order('created_at', { ascending: false });
+
+            if (allHistory && allHistory.length > 10) {
+                const idsToDelete = allHistory.slice(10).map(item => item.id);
+                await supabase
+                    .from('history_data')
+                    .delete()
+                    .in('id', idsToDelete);
+            }
+        }
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde de l\'historique:', error);
     }
-
-    // Sauvegarder dans localStorage
-    localStorage.setItem('museLab_history', JSON.stringify(history));
 }
 
 // Fonction pour afficher l'historique
@@ -133,7 +190,7 @@ function displayHistory() {
 }
 
 // Fonction pour restaurer une version de l'historique
-function restoreFromHistory(index) {
+async function restoreFromHistory(index) {
     const entry = history[index];
     if (!entry) return;
 
@@ -149,7 +206,7 @@ function restoreFromHistory(index) {
         clientsData = JSON.parse(JSON.stringify(entry.clientsData));
         lastUpdateDate = entry.date;
 
-        saveData();
+        await saveData();
         displayResults();
 
         historyModal.style.display = 'none';
@@ -159,14 +216,30 @@ function restoreFromHistory(index) {
 }
 
 // Fonction pour supprimer une entrée de l'historique
-function deleteHistoryEntry(index) {
+async function deleteHistoryEntry(index) {
     const entry = history[index];
     const confirmation = confirm(`Supprimer la version du ${entry.date} de l'historique ?`);
 
     if (confirmation) {
-        history.splice(index, 1);
-        localStorage.setItem('museLab_history', JSON.stringify(history));
-        displayHistory();
+        try {
+            // Supprimer de Supabase en utilisant le timestamp
+            const { error } = await supabase
+                .from('history_data')
+                .delete()
+                .eq('timestamp', entry.timestamp);
+
+            if (error) {
+                console.error('Erreur lors de la suppression:', error);
+                alert('❌ Erreur lors de la suppression de l\'entrée');
+            } else {
+                // Supprimer du tableau local
+                history.splice(index, 1);
+                displayHistory();
+            }
+        } catch (error) {
+            console.error('Erreur lors de la suppression:', error);
+            alert('❌ Erreur lors de la suppression de l\'entrée');
+        }
     }
 }
 
@@ -252,20 +325,23 @@ fileInput.addEventListener('change', (e) => {
 });
 
 // Gestion du nouveau fichier
-newFileBtn.addEventListener('click', () => {
+newFileBtn.addEventListener('click', async () => {
     resultsSection.style.display = 'none';
     dropZone.style.display = 'flex';
     fileInput.value = '';
     clientsData = [];
     lastUpdateDate = null;
-    localStorage.removeItem('museLab_clientsData');
-    localStorage.removeItem('museLab_sortSettings');
-    localStorage.removeItem('museLab_lastUpdate');
-    localStorage.removeItem('museLab_previousData');
+
+    // Supprimer les données actuelles de Supabase
+    try {
+        await supabase.from('current_data').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    } catch (error) {
+        console.error('Erreur lors de la suppression:', error);
+    }
 });
 
 // Gestion de la réinitialisation totale
-resetAllBtn.addEventListener('click', () => {
+resetAllBtn.addEventListener('click', async () => {
     const confirmation = confirm(
         '⚠️ ATTENTION ⚠️\n\n' +
         'Êtes-vous sûr de vouloir tout réinitialiser ?\n\n' +
@@ -277,27 +353,29 @@ resetAllBtn.addEventListener('click', () => {
     );
 
     if (confirmation) {
-        // Supprimer toutes les données du localStorage
-        localStorage.removeItem('museLab_clientsData');
-        localStorage.removeItem('museLab_sortSettings');
-        localStorage.removeItem('museLab_lastUpdate');
-        localStorage.removeItem('museLab_previousData');
-        localStorage.removeItem('museLab_history');
+        try {
+            // Supprimer toutes les données de Supabase
+            await supabase.from('current_data').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+            await supabase.from('history_data').delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
-        // Réinitialiser les variables
-        clientsData = [];
-        lastUpdateDate = null;
-        currentSortColumn = 'credits';
-        currentSortOrder = 'desc';
-        history = [];
+            // Réinitialiser les variables
+            clientsData = [];
+            lastUpdateDate = null;
+            currentSortColumn = 'credits';
+            currentSortOrder = 'desc';
+            history = [];
 
-        // Retourner à l'écran d'upload
-        resultsSection.style.display = 'none';
-        dropZone.style.display = 'flex';
-        fileInput.value = '';
+            // Retourner à l'écran d'upload
+            resultsSection.style.display = 'none';
+            dropZone.style.display = 'flex';
+            fileInput.value = '';
 
-        // Notification de succès
-        alert('✅ Toutes les données ont été réinitialisées avec succès.');
+            // Notification de succès
+            alert('✅ Toutes les données ont été réinitialisées avec succès.');
+        } catch (error) {
+            console.error('Erreur lors de la réinitialisation:', error);
+            alert('❌ Erreur lors de la réinitialisation');
+        }
     }
 });
 
@@ -335,10 +413,14 @@ function handleFile(file) {
 }
 
 // Fonction pour traiter les données Excel
-function processExcelData(data) {
-    // Sauvegarder les données actuelles comme données précédentes
+async function processExcelData(data) {
+    // Sauvegarder les données actuelles dans une copie locale pour le calcul des nouveaux crédits
+    const previousClientsMap = new Map();
     if (clientsData.length > 0) {
-        localStorage.setItem('museLab_previousData', JSON.stringify(clientsData));
+        clientsData.forEach(client => {
+            const key = `${client.prenom}|${client.nom}`;
+            previousClientsMap.set(key, client.credits);
+        });
     }
 
     // Ignorer la première ligne (en-têtes)
@@ -367,22 +449,6 @@ function processExcelData(data) {
         }
     });
 
-    // Récupérer les données précédentes
-    const previousData = localStorage.getItem('museLab_previousData');
-    const previousClientsMap = new Map();
-
-    if (previousData) {
-        try {
-            const previousClients = JSON.parse(previousData);
-            previousClients.forEach(client => {
-                const key = `${client.prenom}|${client.nom}`;
-                previousClientsMap.set(key, client.credits);
-            });
-        } catch (error) {
-            console.error('Erreur lors du chargement des données précédentes:', error);
-        }
-    }
-
     // Convertir la Map en tableau pour l'affichage avec calcul des nouveaux crédits
     clientsData = Array.from(clientsMap.entries()).map(([key, credits]) => {
         const [prenom, nom] = key.split('|');
@@ -405,10 +471,10 @@ function processExcelData(data) {
     sortData('credits', 'desc');
 
     // Sauvegarder les données
-    saveData();
+    await saveData();
 
     // Sauvegarder dans l'historique
-    saveToHistory();
+    await saveToHistory();
 
     displayResults();
 }
@@ -444,7 +510,7 @@ function sortData(column, order = null) {
         return currentSortOrder === 'asc' ? comparison : -comparison;
     });
 
-    // Sauvegarder les paramètres de tri
+    // Sauvegarder les paramètres de tri (pas besoin d'await car on ne veut pas bloquer l'UI)
     saveData();
 }
 
