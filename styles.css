@@ -5,8 +5,8 @@
 }
 
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    font-family: 'Poppins', sans-serif;
+    background: linear-gradient(135deg, #400106 0%, #8B0000 100%);
     min-height: 100vh;
     padding: 20px;
 }
@@ -24,6 +24,7 @@ header {
 }
 
 header h1 {
+    font-family: 'Poppins', sans-serif;
     font-size: 3em;
     font-weight: 700;
     margin-bottom: 10px;
@@ -31,6 +32,7 @@ header h1 {
 }
 
 .subtitle {
+    font-family: 'Poppins', sans-serif;
     font-size: 1.3em;
     opacity: 0.95;
     font-weight: 300;
@@ -45,7 +47,7 @@ main {
 
 /* Zone de téléchargement */
 .upload-zone {
-    border: 3px dashed #667eea;
+    border: 3px dashed #400106;
     border-radius: 15px;
     padding: 60px 40px;
     text-align: center;
@@ -59,8 +61,8 @@ main {
 
 .upload-zone:hover,
 .upload-zone.dragover {
-    border-color: #764ba2;
-    background: #f0f0ff;
+    border-color: #8B0000;
+    background: #fff5f5;
     transform: scale(1.02);
 }
 
@@ -71,7 +73,7 @@ main {
 .upload-icon {
     width: 80px;
     height: 80px;
-    color: #667eea;
+    color: #400106;
     margin-bottom: 20px;
 }
 
@@ -101,7 +103,7 @@ main {
     width: 50px;
     height: 50px;
     border: 5px solid #f3f3f3;
-    border-top: 5px solid #667eea;
+    border-top: 5px solid #400106;
     border-radius: 50%;
     animation: spin 1s linear infinite;
 }
@@ -144,6 +146,7 @@ main {
 }
 
 .results-header h2 {
+    font-family: 'Poppins', sans-serif;
     color: #333;
     font-size: 2em;
     margin: 0;
@@ -167,13 +170,13 @@ main {
 }
 
 .stat-card {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #400106 0%, #8B0000 100%);
     padding: 25px;
     border-radius: 12px;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 15px rgba(64, 1, 6, 0.3);
 }
 
 .stat-label {
@@ -204,8 +207,8 @@ main {
 
 #searchInput:focus {
     outline: none;
-    border-color: #667eea;
-    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    border-color: #400106;
+    box-shadow: 0 0 0 3px rgba(64, 1, 6, 0.1);
 }
 
 /* Table */
@@ -223,7 +226,7 @@ table {
 }
 
 thead {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #400106 0%, #8B0000 100%);
 }
 
 thead th {
@@ -281,7 +284,7 @@ tbody td {
 
 .credits-cell {
     font-weight: 700;
-    color: #667eea;
+    color: #400106;
     font-size: 1.1em;
 }
 
@@ -300,7 +303,7 @@ tbody td {
 
 /* Buttons */
 .btn-primary {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #400106 0%, #8B0000 100%);
     border: none;
     color: white;
     padding: 12px 24px;
@@ -314,7 +317,7 @@ tbody td {
 
 .btn-primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+    box-shadow: 0 6px 20px rgba(64, 1, 6, 0.4);
 }
 
 .btn-danger {
@@ -338,8 +341,8 @@ tbody td {
 
 .btn-secondary {
     background: white;
-    border: 2px solid #667eea;
-    color: #667eea;
+    border: 2px solid #400106;
+    color: #400106;
     padding: 12px 30px;
     font-size: 1em;
     border-radius: 8px;
@@ -349,10 +352,10 @@ tbody td {
 }
 
 .btn-secondary:hover {
-    background: #667eea;
+    background: #400106;
     color: white;
     transform: translateY(-2px);
-    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 15px rgba(64, 1, 6, 0.3);
 }
 
 /* Responsive */
@@ -447,6 +450,7 @@ tbody td {
 }
 
 .modal-header h2 {
+    font-family: 'Poppins', sans-serif;
     margin: 0;
     color: #333;
     font-size: 1.5em;
@@ -504,8 +508,8 @@ tbody td {
 }
 
 .history-item:hover {
-    border-color: #667eea;
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    border-color: #400106;
+    box-shadow: 0 4px 12px rgba(64, 1, 6, 0.1);
 }
 
 .history-info {
@@ -528,7 +532,7 @@ tbody td {
 }
 
 .history-stats strong {
-    color: #667eea;
+    color: #400106;
 }
 
 .new-credits-badge {
@@ -546,7 +550,7 @@ tbody td {
 }
 
 .btn-restore {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #400106 0%, #8B0000 100%);
     color: white;
     border: none;
     padding: 10px 20px;
@@ -559,7 +563,7 @@ tbody td {
 
 .btn-restore:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    box-shadow: 0 4px 12px rgba(64, 1, 6, 0.3);
 }
 
 .btn-delete-history {
