@@ -31,8 +31,8 @@ let lastUpdateDate = null;
 let history = [];
 
 // Identifiants administrateur (à stocker de manière sécurisée en production)
-const ADMIN_USERNAME = 'JalyaStudio';
-const ADMIN_PASSWORD = 'Jaly187!';
+const ADMIN_USERNAME = 'Jalyastudio';
+const ADMIN_PASSWORD = 'jalya187';
 
 // Vérifier si l'utilisateur est connecté
 function checkAuth() {
