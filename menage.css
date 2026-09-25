@@ -201,6 +201,7 @@ button { cursor: pointer; }
     margin-bottom: 16px;
 }
 .notice code { font-weight: 600; }
+.notice a { color: inherit; font-weight: 600; text-underline-offset: 3px; }
 
 /* Progression */
 .progress-head { display: flex; justify-content: space-between; align-items: baseline; }
