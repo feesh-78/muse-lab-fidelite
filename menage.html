@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Muse Lab - Ménage & Réassort</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="menage.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+    <section class="hero">
+        <div class="hero-watermark" aria-hidden="true">clean.</div>
+        <header class="topbar">
+            <div class="brand">
+                <button class="studio-btn" data-studio="78">themuselab.<sup>78</sup></button>
+                <button class="studio-btn" data-studio="92">themuselab.<sup>92</sup></button>
+            </div>
+            <label class="who">
+                <span>Je suis</span>
+                <input type="text" id="whoInput" placeholder="Ton prénom" autocomplete="given-name">
+            </label>
+        </header>
+        <div class="hero-content">
+            <h1 id="heroTitle">ménage.</h1>
+            <p class="hero-sub">The Muse Lab · Studio <span id="studioLabel">78</span></p>
+            <p class="hero-date" id="todayLabel"></p>
+            <nav class="tabs" role="tablist">
+                <button class="tab" role="tab" data-tab="menage">Ménage</button>
+                <button class="tab" role="tab" data-tab="checklist">Checklist</button>
+                <button class="tab" role="tab" data-tab="achats">Achats <span class="badge" id="achatsBadge" hidden></span></button>
+            </nav>
+        </div>
+    </section>
+
+    <main class="page">
+        <div id="setupNotice" class="notice" hidden>
+            Dernière étape d'installation : les tables ne sont pas encore créées dans Supabase.
+            Ouvrez <a href="https://supabase.com/dashboard/project/nxqttyosjjirqtcvfkbk/sql/new" target="_blank" rel="noopener">l'éditeur SQL Supabase</a>,
+            collez le contenu de <a href="https://github.com/feesh-78/muse-lab-fidelite/blob/main/menage-setup.sql" target="_blank" rel="noopener">menage-setup.sql</a>,
+            cliquez sur <strong>Run</strong>, puis rechargez cette page.
+        </div>
+
+        <!-- Listes Ménage / Checklist (même composant) -->
+        <section id="listPanel" class="panel">
+            <div class="progress-card">
+                <div class="progress-head">
+                    <span class="eyebrow" id="listEyebrow">Étapes du ménage</span>
+                    <span class="progress-count" id="progressCount">0 / 0</span>
+                </div>
+                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+            </div>
+
+            <ul class="task-list" id="taskList"></ul>
+
+            <form class="add-row" id="addForm">
+                <input type="text" id="addInput" placeholder="Ajouter une étape…" maxlength="120" required>
+                <button type="submit" class="btn btn-dark">Ajouter</button>
+            </form>
+
+            <div class="list-footer">
+                <button class="link-btn" id="editToggle">Modifier la liste</button>
+                <button class="link-btn" id="resetDay">Tout décocher pour aujourd'hui</button>
+            </div>
+
+            <div class="achat-cta" id="checklistCta" hidden>
+                <div>
+                    <p class="cta-title">Il manque quelque chose ?</p>
+                    <p class="cta-text">Signalez un achat : l'équipe reçoit un email à team@themuselab.fr.</p>
+                </div>
+                <button class="btn btn-bordeaux" data-goto="achats">Signaler un achat</button>
+            </div>
+        </section>
+
+        <!-- Achats -->
+        <section id="achatsPanel" class="panel" hidden>
+            <form class="card achat-form" id="achatForm">
+                <span class="eyebrow">Nouvel achat à prévoir</span>
+                <div class="quick-picks" id="quickPicks">
+                    <button type="button" class="chip">Bonbons</button>
+                    <button type="button" class="chip">Eau</button>
+                    <button type="button" class="chip">Papier toilette</button>
+                    <button type="button" class="chip">Savon</button>
+                    <button type="button" class="chip">Produit ménager</button>
+                    <button type="button" class="chip">Sacs poubelle</button>
+                </div>
+                <label class="field">
+                    <span>Article</span>
+                    <input type="text" id="achatArticle" placeholder="Ex. bouteilles d'eau 50 cl" maxlength="120" required>
+                </label>
+                <label class="field">
+                    <span>Quantité</span>
+                    <input type="text" id="achatQuantite" placeholder="Ex. 2 packs" maxlength="60">
+                </label>
+                <label class="field">
+                    <span>Note (facultatif)</span>
+                    <textarea id="achatNote" rows="2" placeholder="Marque, urgence, où acheter…" maxlength="500"></textarea>
+                </label>
+                <button type="submit" class="btn btn-bordeaux btn-block" id="achatSubmit">Envoyer à l'équipe</button>
+                <p class="form-hint">Un email est envoyé à <strong>team@themuselab.fr</strong>.</p>
+            </form>
+
+            <div class="section-head">
+                <h2>à acheter.</h2>
+                <span class="eyebrow" id="achatsCount"></span>
+            </div>
+            <ul class="achat-list" id="achatList"></ul>
+        </section>
+    </main>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script src="supabase-config.js"></script>
+    <script src="menage.js"></script>
+</body>
+</html>
