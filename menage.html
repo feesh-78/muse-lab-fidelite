@@ -26,10 +26,11 @@
         <div class="hero-content">
             <h1 id="heroTitle">ménage.</h1>
             <p class="hero-sub">The Muse Lab · Studio <span id="studioLabel">78</span></p>
-            <p class="hero-date" id="todayLabel"></p>
+            <p class="hero-date"><span id="dayLabel"></span> <span class="day-tag" id="dayTag"></span></p>
             <nav class="tabs" role="tablist">
                 <button class="tab" role="tab" data-tab="menage">Ménage</button>
                 <button class="tab" role="tab" data-tab="checklist">Checklist</button>
+                <button class="tab" role="tab" data-tab="calendrier">Calendrier</button>
                 <button class="tab" role="tab" data-tab="achats">Achats <span class="badge" id="achatsBadge" hidden></span></button>
             </nav>
         </div>
@@ -65,6 +66,27 @@
                 <button class="link-btn" id="resetDay">Tout décocher pour aujourd'hui</button>
             </div>
 
+            <section class="notes">
+                <div class="section-head">
+                    <h2>transmissions.</h2>
+                    <span class="eyebrow">Studio <span class="studio-inline"></span></span>
+                </div>
+                <div id="notesNotice" class="notice" hidden>
+                    Pour activer les transmissions, exécutez une fois
+                    <a href="https://github.com/feesh-78/muse-lab-fidelite/blob/main/menage-notes.sql" target="_blank" rel="noopener">menage-notes.sql</a>
+                    dans <a href="https://supabase.com/dashboard/project/nxqttyosjjirqtcvfkbk/sql/new" target="_blank" rel="noopener">l'éditeur SQL Supabase</a>, puis rechargez la page.
+                </div>
+                <ul class="note-list" id="notesList"></ul>
+                <form class="note-form" id="noteForm">
+                    <textarea id="noteInput" rows="2" maxlength="1000" placeholder="Une info pour la prochaine équipe ? (produit manquant, souci, rappel…)" required></textarea>
+                    <button type="submit" class="btn btn-bordeaux" id="noteSubmit">Transmettre</button>
+                </form>
+                <div class="prev-notes" id="prevNotesWrap" hidden>
+                    <span class="eyebrow">Transmissions précédentes</span>
+                    <ul class="note-list" id="prevNotesList"></ul>
+                </div>
+            </section>
+
             <div class="achat-cta" id="checklistCta" hidden>
                 <div>
                     <p class="cta-title">Il manque quelque chose ?</p>
@@ -72,6 +94,33 @@
                 </div>
                 <button class="btn btn-bordeaux" data-goto="achats">Signaler un achat</button>
             </div>
+        </section>
+
+        <!-- Calendrier -->
+        <section id="calendarPanel" class="panel" hidden>
+            <div class="card cal-card">
+                <div class="cal-head">
+                    <button class="icon-btn" id="prevMonth" aria-label="Mois précédent">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <h2 id="monthLabel"></h2>
+                    <button class="icon-btn" id="nextMonth" aria-label="Mois suivant">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                </div>
+                <div class="cal-grid cal-weekdays">
+                    <span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+                </div>
+                <div class="cal-grid" id="calGrid"></div>
+                <div class="cal-legend">
+                    <span><i class="lg lg-full"></i>Ménage fait</span>
+                    <span><i class="lg lg-part"></i>Ménage commencé</span>
+                    <span><i class="lg lg-check"></i>Checklist</span>
+                    <span><i class="lg lg-note"></i>Transmission</span>
+                </div>
+            </div>
+            <div class="cal-summary" id="calSummary"></div>
+            <p class="form-hint">Touchez un jour pour voir le détail et les transmissions.</p>
         </section>
 
         <!-- Achats -->
@@ -109,6 +158,22 @@
             <ul class="achat-list" id="achatList"></ul>
         </section>
     </main>
+
+    <!-- Navigation par jour -->
+    <nav class="day-bar" id="dayBar" aria-label="Changer de jour">
+        <button class="day-nav" id="prevDay">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+            <span>Jour précédent</span>
+        </button>
+        <button class="day-current" id="todayBtn">
+            <span id="dayBarLabel"></span>
+            <small id="dayBarHint"></small>
+        </button>
+        <button class="day-nav" id="nextDay">
+            <span>Jour suivant</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+    </nav>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 

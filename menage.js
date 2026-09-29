@@ -1,5 +1,5 @@
 // The Muse Lab — Ménage & Réassort
-// Données partagées via Supabase (voir menage-setup.sql)
+// Données partagées via Supabase (voir menage-setup.sql et menage-notes.sql)
 
 // Email qui reçoit les demandes d'achat.
 // Envoi via FormSubmit (gratuit, sans serveur) : au tout premier envoi,
@@ -9,20 +9,45 @@ const NOTIFY_ENDPOINT = `https://formsubmit.co/ajax/${NOTIFY_EMAIL}`;
 
 const REFRESH_MS = 30000;
 
+// ---------- Dates (format AAAA-MM-JJ, heure locale) ----------
+function toKey(d) {
+    const pad = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+function fromKey(key) {
+    const [y, m, d] = key.split('-').map(Number);
+    return new Date(y, m - 1, d);
+}
+function addDays(key, n) {
+    const d = fromKey(key);
+    d.setDate(d.getDate() + n);
+    return toKey(d);
+}
+const today = () => toKey(new Date());
+
 const state = {
     tab: localStorage.getItem('ml_tab') || 'menage',
     studio: localStorage.getItem('ml_studio') || '78',
     who: localStorage.getItem('ml_who') || '',
+    day: today(),
+    month: today().slice(0, 7),
     editing: false,
+    notesReady: true,
     items: [],
     checks: [],
+    notes: [],
+    prevNotes: [],
     achats: [],
+    monthChecks: [],
+    monthNotes: [],
+    lastMenage: null,
 };
 
 // ---------- Éléments ----------
 const $ = (id) => document.getElementById(id);
 const taskList = $('taskList');
 const listPanel = $('listPanel');
+const calendarPanel = $('calendarPanel');
 const achatsPanel = $('achatsPanel');
 const addForm = $('addForm');
 const addInput = $('addInput');
@@ -31,20 +56,21 @@ const whoInput = $('whoInput');
 const toastEl = $('toast');
 
 // ---------- Utilitaires ----------
-function today() {
-    const d = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-}
-
 function formatTime(iso) {
     return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 }
-
 function formatDateTime(iso) {
-    return new Date(iso).toLocaleString('fr-FR', {
-        day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
-    });
+    return new Date(iso).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+}
+function formatDay(key, opts = { weekday: 'long', day: 'numeric', month: 'long' }) {
+    return fromKey(key).toLocaleDateString('fr-FR', opts);
+}
+function relativeDay(key) {
+    const t = today();
+    if (key === t) return "Aujourd'hui";
+    if (key === addDays(t, -1)) return 'Hier';
+    if (key === addDays(t, 1)) return 'Demain';
+    return '';
 }
 
 let toastTimer;
@@ -80,31 +106,79 @@ function iconBtn(icon, title, onClick, extraClass = '') {
     return b;
 }
 
+// 42P01 = table inexistante : un script SQL n'a pas encore été exécuté
+function isMissingTable(error) {
+    return error && (error.code === '42P01' || error.code === 'PGRST205' || /does not exist|schema cache/i.test(error.message || ''));
+}
+
 function handleError(error) {
     console.error(error);
-    // 42P01 = table inexistante : le script SQL n'a pas encore été exécuté
-    if (error && (error.code === '42P01' || /does not exist|schema cache/i.test(error.message || ''))) {
-        $('setupNotice').hidden = false;
-    } else {
-        toast('Erreur de connexion, réessayez.');
-    }
+    if (isMissingTable(error)) $('setupNotice').hidden = false;
+    else toast('Erreur de connexion, réessayez.');
 }
 
 // ---------- Chargement ----------
-async function loadAll() {
-    const [items, checks, achats] = await Promise.all([
-        supabase.from('menage_items').select('*').order('position').order('id'),
-        supabase.from('menage_checks').select('*').eq('day', today()).eq('studio', state.studio),
-        supabase.from('menage_achats').select('*').order('created_at', { ascending: false }).limit(100),
-    ]);
-    const error = items.error || checks.error || achats.error;
-    if (error) return handleError(error);
+const menageIds = () => state.items.filter((i) => i.list === 'menage').map((i) => i.id);
 
-    $('setupNotice').hidden = true;
-    state.items = items.data;
-    state.checks = checks.data;
-    state.achats = achats.data;
-    render();
+async function loadNotes() {
+    const [dayNotes, prev] = await Promise.all([
+        supabase.from('menage_notes').select('*').eq('day', state.day).eq('studio', state.studio).order('created_at'),
+        supabase.from('menage_notes').select('*').lt('day', state.day).eq('studio', state.studio)
+            .order('day', { ascending: false }).order('created_at', { ascending: false }).limit(3),
+    ]);
+    const error = dayNotes.error || prev.error;
+    if (error) {
+        if (isMissingTable(error)) {
+            state.notesReady = false;
+            state.notes = [];
+            state.prevNotes = [];
+            return;
+        }
+        throw error;
+    }
+    state.notesReady = true;
+    state.notes = dayNotes.data;
+    state.prevNotes = prev.data;
+}
+
+async function loadMonth() {
+    const start = `${state.month}-01`;
+    const [y, m] = state.month.split('-').map(Number);
+    const end = toKey(new Date(y, m, 0));
+    const [checks, notes, last] = await Promise.all([
+        supabase.from('menage_checks').select('item_id, day').eq('studio', state.studio).gte('day', start).lte('day', end),
+        state.notesReady
+            ? supabase.from('menage_notes').select('day').eq('studio', state.studio).gte('day', start).lte('day', end)
+            : Promise.resolve({ data: [] }),
+        supabase.from('menage_checks').select('day').eq('studio', state.studio).in('item_id', menageIds())
+            .lte('day', today()).order('day', { ascending: false }).limit(1),
+    ]);
+    const error = checks.error || last.error || (notes.error && !isMissingTable(notes.error) ? notes.error : null);
+    if (error) throw error;
+    state.monthChecks = checks.data;
+    state.monthNotes = notes.data || [];
+    state.lastMenage = last.data[0] ? last.data[0].day : null;
+}
+
+async function loadAll() {
+    try {
+        const [items, checks, achats] = await Promise.all([
+            supabase.from('menage_items').select('*').order('position').order('id'),
+            supabase.from('menage_checks').select('*').eq('day', state.day).eq('studio', state.studio),
+            supabase.from('menage_achats').select('*').order('created_at', { ascending: false }).limit(100),
+        ]);
+        const error = items.error || checks.error || achats.error;
+        if (error) throw error;
+        state.items = items.data;
+        state.checks = checks.data;
+        state.achats = achats.data;
+        await loadNotes();
+        if (state.tab === 'calendrier') await loadMonth();
+        $('setupNotice').hidden = true;
+        render();
+    } catch (error) {
+        handleError(error);
+    }
 }
 
 // ---------- Rendu ----------
@@ -112,32 +186,49 @@ function render() {
     document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === state.tab));
     document.querySelectorAll('.studio-btn').forEach((b) => b.classList.toggle('active', b.dataset.studio === state.studio));
     $('studioLabel').textContent = state.studio;
+    document.querySelectorAll('.studio-inline').forEach((s) => { s.textContent = state.studio; });
 
-    const titles = { menage: 'ménage.', checklist: 'checklist.', achats: 'achats.' };
+    const titles = { menage: 'ménage.', checklist: 'checklist.', calendrier: 'calendrier.', achats: 'achats.' };
     $('heroTitle').textContent = titles[state.tab];
 
-    const isList = state.tab !== 'achats';
+    const rel = relativeDay(state.day);
+    $('dayLabel').textContent = formatDay(state.day);
+    $('dayTag').textContent = rel;
+    $('dayBarLabel').textContent = rel || formatDay(state.day, { weekday: 'short', day: 'numeric', month: 'short' });
+    $('dayBarHint').textContent = state.day === today() ? '' : "Revenir à aujourd'hui";
+
+    const isList = state.tab === 'menage' || state.tab === 'checklist';
     listPanel.hidden = !isList;
-    achatsPanel.hidden = isList;
+    calendarPanel.hidden = state.tab !== 'calendrier';
+    achatsPanel.hidden = state.tab !== 'achats';
+    $('dayBar').hidden = !isList;
 
     const pending = state.achats.filter((a) => !a.fait).length;
     $('achatsBadge').hidden = pending === 0;
     $('achatsBadge').textContent = pending;
 
-    if (isList) renderList();
-    else renderAchats();
+    if (isList) {
+        renderList();
+        renderNotes();
+    } else if (state.tab === 'calendrier') {
+        renderCalendar();
+    } else {
+        renderAchats();
+    }
 }
 
 function renderList() {
     const list = state.tab;
     const items = state.items.filter((i) => i.list === list);
     const checksByItem = new Map(state.checks.map((c) => [c.item_id, c]));
+    const future = state.day > today();
 
     listPanel.classList.toggle('editing', state.editing);
     editToggle.textContent = state.editing ? 'Terminer' : 'Modifier la liste';
     $('listEyebrow').textContent = list === 'menage' ? 'Étapes du ménage' : 'Checklist du jour';
     addInput.placeholder = list === 'menage' ? 'Ajouter une étape…' : 'Ajouter un point à vérifier…';
     $('checklistCta').hidden = list !== 'checklist';
+    $('resetDay').textContent = state.day === today() ? "Tout décocher pour aujourd'hui" : 'Tout décocher pour ce jour';
 
     const done = items.filter((i) => checksByItem.has(i.id)).length;
     $('progressCount').textContent = `${done} / ${items.length}`;
@@ -145,6 +236,9 @@ function renderList() {
     document.querySelector('.progress-card').classList.toggle('complete', items.length > 0 && done === items.length);
 
     taskList.replaceChildren();
+    if (future) {
+        taskList.append(el('li', 'future-hint', 'Ce jour n’est pas encore arrivé : les cases se cochent le jour même. Vous pouvez déjà laisser une transmission ci-dessous.'));
+    }
     if (!items.length) {
         taskList.append(el('li', 'empty', 'Aucune étape pour le moment. Ajoutez-en une ci-dessous.'));
         return;
@@ -152,7 +246,7 @@ function renderList() {
 
     items.forEach((item, index) => {
         const check = checksByItem.get(item.id);
-        const li = el('li', `task${check ? ' done' : ''}`);
+        const li = el('li', `task${check ? ' done' : ''}${future ? ' locked' : ''}`);
 
         const box = el('button', 'task-check');
         box.type = 'button';
@@ -174,7 +268,7 @@ function renderList() {
         up.disabled = index === 0;
         down.disabled = index === items.length - 1;
         tools.append(
-            iconBtn('pen', 'Renommer', () => startRename(li, body, item)),
+            iconBtn('pen', 'Renommer', () => startRename(body, item)),
             up,
             down,
             iconBtn('trash', 'Supprimer', () => deleteItem(item), 'danger'),
@@ -183,6 +277,109 @@ function renderList() {
         li.append(box, body, tools);
         taskList.append(li);
     });
+}
+
+function noteItem(note, withDay) {
+    const li = el('li', 'note');
+    li.append(el('div', 'note-text', note.text));
+    const when = withDay ? `${formatDay(note.day, { weekday: 'short', day: 'numeric', month: 'short' })} · ` : '';
+    li.append(el('div', 'note-meta', `${when}${formatTime(note.created_at)}${note.author ? ` · ${note.author}` : ''}`));
+    return li;
+}
+
+function renderNotes() {
+    $('notesNotice').hidden = state.notesReady;
+    $('noteForm').hidden = !state.notesReady;
+
+    const list = $('notesList');
+    list.replaceChildren();
+    if (state.notesReady && !state.notes.length) {
+        list.append(el('li', 'empty', 'Aucune transmission pour ce jour.'));
+    }
+    state.notes.forEach((note) => {
+        const li = noteItem(note, false);
+        li.append(iconBtn('trash', 'Supprimer', () => deleteNote(note), 'danger'));
+        list.append(li);
+    });
+
+    // Les dernières infos laissées les jours précédents, pour que la prochaine équipe les voie
+    const prev = $('prevNotesList');
+    prev.replaceChildren();
+    $('prevNotesWrap').hidden = !state.prevNotes.length;
+    state.prevNotes.forEach((note) => {
+        const li = noteItem(note, true);
+        li.title = 'Aller à ce jour';
+        li.addEventListener('click', () => goToDay(note.day));
+        prev.append(li);
+    });
+}
+
+function renderCalendar() {
+    const [y, m] = state.month.split('-').map(Number);
+    const first = new Date(y, m - 1, 1);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const offset = (first.getDay() + 6) % 7; // lundi en premier
+
+    $('monthLabel').textContent = first.toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+
+    const ids = new Set(menageIds());
+    const checkIds = new Set(state.items.filter((i) => i.list === 'checklist').map((i) => i.id));
+    const menageDone = {};
+    const checklistDone = {};
+    state.monthChecks.forEach((c) => {
+        if (ids.has(c.item_id)) menageDone[c.day] = (menageDone[c.day] || 0) + 1;
+        if (checkIds.has(c.item_id)) checklistDone[c.day] = (checklistDone[c.day] || 0) + 1;
+    });
+    const notesByDay = {};
+    state.monthNotes.forEach((n) => { notesByDay[n.day] = (notesByDay[n.day] || 0) + 1; });
+
+    const grid = $('calGrid');
+    grid.replaceChildren();
+    for (let i = 0; i < offset; i++) grid.append(el('span', 'cal-day other'));
+
+    let menageDays = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+        const key = toKey(new Date(y, m - 1, d));
+        const count = menageDone[key] || 0;
+        const full = ids.size > 0 && count >= ids.size;
+        if (full) menageDays++;
+
+        const cell = el('button', 'cal-day');
+        cell.type = 'button';
+        if (full) cell.classList.add('full');
+        else if (count) cell.classList.add('part');
+        if (key === today()) cell.classList.add('today');
+        if (key === state.day) cell.classList.add('selected');
+
+        cell.append(el('span', '', String(d)));
+        const marks = el('span', 'cal-marks');
+        if (checklistDone[key]) marks.append(el('i', 'm-check'));
+        if (notesByDay[key]) marks.append(el('i', 'm-note'));
+        cell.append(marks);
+
+        const labels = [formatDay(key)];
+        if (full) labels.push('ménage fait');
+        else if (count) labels.push(`ménage ${count}/${ids.size}`);
+        if (notesByDay[key]) labels.push(`${notesByDay[key]} transmission(s)`);
+        cell.setAttribute('aria-label', labels.join(', '));
+        cell.addEventListener('click', () => goToDay(key, 'menage'));
+        grid.append(cell);
+    }
+
+    const summary = $('calSummary');
+    summary.replaceChildren();
+    const stat = (value, label) => {
+        const s = el('div', 'stat');
+        s.append(el('div', 'stat-value', value), el('div', 'stat-label', label));
+        return s;
+    };
+    const last = state.lastMenage
+        ? (relativeDay(state.lastMenage) || formatDay(state.lastMenage, { weekday: 'short', day: 'numeric', month: 'short' }))
+        : '—';
+    summary.append(
+        stat(last, 'Dernier ménage'),
+        stat(String(menageDays), `Ménage${menageDays > 1 ? 's' : ''} complet${menageDays > 1 ? 's' : ''} ce mois`),
+    );
 }
 
 function renderAchats() {
@@ -217,15 +414,40 @@ function renderAchats() {
     });
 }
 
+// ---------- Navigation ----------
+function goToDay(key, tab) {
+    state.day = key;
+    state.month = key.slice(0, 7);
+    state.editing = false;
+    if (tab) {
+        state.tab = tab;
+        localStorage.setItem('ml_tab', tab);
+    }
+    state.checks = [];
+    state.notes = [];
+    render();
+    loadAll();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function setTab(tab) {
+    state.tab = tab;
+    state.editing = false;
+    localStorage.setItem('ml_tab', tab);
+    render();
+    if (tab === 'calendrier') loadAll();
+}
+
 // ---------- Actions : tâches ----------
 async function toggleCheck(item, check) {
+    if (state.day > today()) return toast('Ce jour n’est pas encore arrivé');
     if (check) {
         state.checks = state.checks.filter((c) => c.id !== check.id);
         render();
         const { error } = await supabase.from('menage_checks').delete().eq('id', check.id);
         if (error) handleError(error);
     } else {
-        const row = { item_id: item.id, day: today(), studio: state.studio, done_by: state.who || null };
+        const row = { item_id: item.id, day: state.day, studio: state.studio, done_by: state.who || null };
         const { data, error } = await supabase
             .from('menage_checks')
             .upsert(row, { onConflict: 'item_id,day,studio' })
@@ -253,7 +475,7 @@ async function addItem(label) {
     toast('Étape ajoutée');
 }
 
-function startRename(li, body, item) {
+function startRename(body, item) {
     const input = el('input', 'task-edit-input');
     input.value = item.label;
     input.maxLength = 120;
@@ -307,10 +529,38 @@ async function resetDay() {
     const ids = state.items.filter((i) => i.list === state.tab).map((i) => i.id);
     const toDelete = state.checks.filter((c) => ids.includes(c.item_id));
     if (!toDelete.length) return;
-    if (!confirm('Tout décocher pour aujourd\'hui ?')) return;
+    if (!confirm('Tout décocher pour ce jour ?')) return;
     state.checks = state.checks.filter((c) => !ids.includes(c.item_id));
     render();
     const { error } = await supabase.from('menage_checks').delete().in('id', toDelete.map((c) => c.id));
+    if (error) handleError(error);
+}
+
+// ---------- Actions : transmissions ----------
+async function submitNote(e) {
+    e.preventDefault();
+    const text = $('noteInput').value.trim();
+    if (!text) return;
+    const submitBtn = $('noteSubmit');
+    submitBtn.disabled = true;
+    const { data, error } = await supabase
+        .from('menage_notes')
+        .insert({ day: state.day, studio: state.studio, author: state.who || null, text })
+        .select()
+        .single();
+    submitBtn.disabled = false;
+    if (error) return handleError(error);
+    state.notes.push(data);
+    $('noteInput').value = '';
+    render();
+    toast('Transmission enregistrée');
+}
+
+async function deleteNote(note) {
+    if (!confirm('Supprimer cette transmission ?')) return;
+    state.notes = state.notes.filter((n) => n.id !== note.id);
+    render();
+    const { error } = await supabase.from('menage_notes').delete().eq('id', note.id);
     if (error) handleError(error);
 }
 
@@ -394,13 +644,6 @@ async function deleteAchat(achat) {
 }
 
 // ---------- Évènements ----------
-function setTab(tab) {
-    state.tab = tab;
-    state.editing = false;
-    localStorage.setItem('ml_tab', tab);
-    render();
-}
-
 document.querySelectorAll('.tab').forEach((t) => t.addEventListener('click', () => setTab(t.dataset.tab)));
 document.querySelectorAll('[data-goto]').forEach((b) => b.addEventListener('click', () => setTab(b.dataset.goto)));
 
@@ -427,6 +670,34 @@ addForm.addEventListener('submit', (e) => {
 
 editToggle.addEventListener('click', () => { state.editing = !state.editing; render(); });
 $('resetDay').addEventListener('click', resetDay);
+$('noteForm').addEventListener('submit', submitNote);
+
+$('prevDay').addEventListener('click', () => goToDay(addDays(state.day, -1)));
+$('nextDay').addEventListener('click', () => goToDay(addDays(state.day, 1)));
+$('todayBtn').addEventListener('click', () => { if (state.day !== today()) goToDay(today()); });
+
+function shiftMonth(delta) {
+    const [y, m] = state.month.split('-').map(Number);
+    state.month = toKey(new Date(y, m - 1 + delta, 1)).slice(0, 7);
+    render();
+    loadAll();
+}
+$('prevMonth').addEventListener('click', () => shiftMonth(-1));
+$('nextMonth').addEventListener('click', () => shiftMonth(1));
+
+// Glisser vers la gauche / la droite pour changer de jour (téléphone)
+let touchStart = null;
+listPanel.addEventListener('touchstart', (e) => {
+    if (e.target.closest('input, textarea')) return;
+    touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+}, { passive: true });
+listPanel.addEventListener('touchend', (e) => {
+    if (!touchStart) return;
+    const dx = e.changedTouches[0].clientX - touchStart.x;
+    const dy = e.changedTouches[0].clientY - touchStart.y;
+    touchStart = null;
+    if (Math.abs(dx) > 70 && Math.abs(dy) < 40) goToDay(addDays(state.day, dx < 0 ? 1 : -1));
+}, { passive: true });
 
 $('achatForm').addEventListener('submit', submitAchat);
 document.querySelectorAll('#quickPicks .chip').forEach((chip) => chip.addEventListener('click', () => {
@@ -434,16 +705,16 @@ document.querySelectorAll('#quickPicks .chip').forEach((chip) => chip.addEventLi
     $('achatQuantite').focus();
 }));
 
-$('todayLabel').textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
-
 // Synchronisation entre les téléphones de l'équipe
-let lastDay = today();
+let lastToday = today();
 setInterval(() => {
     if (document.hidden || state.editing) return;
-    if (today() !== lastDay) {
-        lastDay = today();
-        $('todayLabel').textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+    // Après minuit, on suit le nouveau jour si l'écran affichait « aujourd'hui »
+    if (today() !== lastToday) {
+        if (state.day === lastToday) state.day = today();
+        lastToday = today();
     }
+    if (document.activeElement && document.activeElement.matches('textarea, input')) return;
     loadAll();
 }, REFRESH_MS);
 document.addEventListener('visibilitychange', () => { if (!document.hidden && !state.editing) loadAll(); });
