@@ -29,7 +29,7 @@
             <p class="hero-date"><span id="dayLabel"></span> <span class="day-tag" id="dayTag"></span></p>
             <nav class="tabs" role="tablist">
                 <button class="tab" role="tab" data-tab="menage">Ménage</button>
-                <button class="tab" role="tab" data-tab="checklist">Checklist</button>
+                <button class="tab" role="tab" data-tab="heures">Heures</button>
                 <button class="tab" role="tab" data-tab="calendrier">Calendrier</button>
                 <button class="tab" role="tab" data-tab="achats">Achats <span class="badge" id="achatsBadge" hidden></span></button>
             </nav>
@@ -44,7 +44,7 @@
             cliquez sur <strong>Run</strong>, puis rechargez cette page.
         </div>
 
-        <!-- Listes Ménage / Checklist (même composant) -->
+        <!-- Ménage -->
         <section id="listPanel" class="panel">
             <div class="progress-card">
                 <div class="progress-head">
@@ -87,12 +87,68 @@
                 </div>
             </section>
 
-            <div class="achat-cta" id="checklistCta" hidden>
+            <div class="achat-cta" id="achatCta">
                 <div>
                     <p class="cta-title">Il manque quelque chose ?</p>
                     <p class="cta-text">Signalez un achat : l'équipe reçoit un email à team@themuselab.fr.</p>
                 </div>
                 <button class="btn btn-bordeaux" data-goto="achats">Signaler un achat</button>
+            </div>
+        </section>
+
+        <!-- Heures -->
+        <section id="heuresPanel" class="panel" hidden>
+            <div id="heuresNotice" class="notice" hidden>
+                Pour activer le suivi des heures, exécutez une fois
+                <a href="https://github.com/feesh-78/muse-lab-fidelite/blob/main/menage-heures.sql" target="_blank" rel="noopener">menage-heures.sql</a>
+                dans <a href="https://supabase.com/dashboard/project/nxqttyosjjirqtcvfkbk/sql/new" target="_blank" rel="noopener">l'éditeur SQL Supabase</a>, puis rechargez la page.
+            </div>
+
+            <form class="card heures-form" id="heuresForm">
+                <span class="eyebrow">Qui a fait le ménage ?</span>
+                <div class="person-picks" id="personPicks"></div>
+                <span class="eyebrow">Combien d'heures ?</span>
+                <div class="hours-stepper">
+                    <button type="button" class="step-btn" id="hoursMinus" aria-label="Moins 30 minutes">−</button>
+                    <output id="hoursValue">2h</output>
+                    <button type="button" class="step-btn" id="hoursPlus" aria-label="Plus 30 minutes">+</button>
+                </div>
+                <div class="quick-picks" id="hoursQuick">
+                    <button type="button" class="chip" data-h="1">1h</button>
+                    <button type="button" class="chip" data-h="1.5">1h30</button>
+                    <button type="button" class="chip" data-h="2">2h</button>
+                    <button type="button" class="chip" data-h="2.5">2h30</button>
+                    <button type="button" class="chip" data-h="3">3h</button>
+                    <button type="button" class="chip" data-h="4">4h</button>
+                </div>
+                <label class="field">
+                    <span>Note (facultatif)</span>
+                    <input type="text" id="heuresNote" placeholder="Ex. grand ménage, vitres…" maxlength="200">
+                </label>
+                <button type="submit" class="btn btn-bordeaux btn-block" id="heuresSubmit">Enregistrer</button>
+                <p class="form-hint" id="heuresHint"></p>
+            </form>
+
+            <div class="section-head">
+                <h2>ce jour.</h2>
+                <span class="eyebrow" id="heuresDayTotal"></span>
+            </div>
+            <ul class="achat-list" id="heuresDayList"></ul>
+
+            <div class="card recap">
+                <div class="cal-head">
+                    <button class="icon-btn" id="hPrevMonth" aria-label="Mois précédent">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <h2 id="recapLabel"></h2>
+                    <button class="icon-btn" id="hNextMonth" aria-label="Mois suivant">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                </div>
+                <table class="recap-table">
+                    <thead><tr><th></th><th>Studio 78</th><th>Studio 92</th><th>Total</th></tr></thead>
+                    <tbody id="recapBody"></tbody>
+                </table>
             </div>
         </section>
 
@@ -115,7 +171,7 @@
                 <div class="cal-legend">
                     <span><i class="lg lg-full"></i>Ménage fait</span>
                     <span><i class="lg lg-part"></i>Ménage commencé</span>
-                    <span><i class="lg lg-check"></i>Checklist</span>
+                    <span><b class="lg-hours">2h</b>Heures</span>
                     <span><i class="lg lg-note"></i>Transmission</span>
                 </div>
             </div>
