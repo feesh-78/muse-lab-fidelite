@@ -1,0 +1,48 @@
+# Vérification temporaire de l'état Supabase (aucune donnée personnelle affichée : statuts et nombres de lignes uniquement)
+name: Vérification Supabase
+
+on:
+  push:
+    branches: [claude/kind-knuth-gqn1lf]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verif:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Tables, persistance et site
+        run: |
+          URL=https://nxqttyosjjirqtcvfkbk.supabase.co/rest/v1
+          KEY=$(grep -oE "eyJ[^']+" supabase-config.js)
+          H=(-H "apikey: $KEY" -H "Authorization: Bearer $KEY")
+          echo "== Tables (statut HTTP / nombre de lignes)"
+          for t in menage_items menage_checks menage_notes menage_heures menage_achats; do
+            out=$(curl -s -o /dev/null -D - "${H[@]}" -H "Prefer: count=exact" -H "Range: 0-0" -w "%{http_code}" "$URL/$t?select=id")
+            code=$(echo "$out" | tail -1); range=$(echo "$out" | grep -i '^content-range' | tr -d '\r' | awk '{print $2}')
+            echo "$t : HTTP $code, lignes ${range#*/}"
+          done
+          echo "== Répartition des listes de tâches (sans libellés)"
+          curl -s "${H[@]}" "$URL/menage_items?select=list" | python3 -c "import sys,json,collections;print(dict(collections.Counter(r['list'] for r in json.load(sys.stdin))))"
+          echo "== Test écriture / relecture / suppression (studio fictif TEST, jour 2000-01-01)"
+          test_table() {
+            t=$1; body=$2
+            id=$(curl -s "${H[@]}" -H "Content-Type: application/json" -H "Prefer: return=representation" -d "$body" "$URL/$t" | python3 -c "import sys,json;d=json.load(sys.stdin);print(d[0]['id'] if isinstance(d,list) and d else 'ERREUR '+json.dumps(d)[:200])")
+            echo "$t insertion : $id"
+            case "$id" in ERREUR*) return;; esac
+            n=$(curl -s "${H[@]}" "$URL/$t?id=eq.$id&select=id" | python3 -c "import sys,json;print(len(json.load(sys.stdin)))")
+            echo "$t relecture : $n ligne(s)"
+            curl -s -o /dev/null -w "$t suppression : HTTP %{http_code}\n" -X DELETE "${H[@]}" "$URL/$t?id=eq.$id"
+            n=$(curl -s "${H[@]}" "$URL/$t?id=eq.$id&select=id" | python3 -c "import sys,json;print(len(json.load(sys.stdin)))")
+            echo "$t après suppression : $n ligne(s)"
+          }
+          test_table menage_heures '{"day":"2000-01-01","studio":"TEST","person":"TEST","hours":0.5}'
+          test_table menage_notes '{"day":"2000-01-01","studio":"TEST","author":"TEST","text":"test technique"}'
+          item=$(curl -s "${H[@]}" "$URL/menage_items?select=id&limit=1" | python3 -c "import sys,json;d=json.load(sys.stdin);print(d[0]['id'] if d else '')")
+          [ -n "$item" ] && test_table menage_checks "{\"item_id\":$item,\"day\":\"2000-01-01\",\"studio\":\"TEST\",\"done_by\":\"TEST\"}"
+          echo "== Site publié"
+          for p in "" menage.html; do curl -s -o /dev/null -w "https://feesh-78.github.io/muse-lab-fidelite/$p : HTTP %{http_code}\n" "https://feesh-78.github.io/muse-lab-fidelite/$p"; done
+          curl -s -o /dev/null -w "https://menage.themuselab.fr : HTTP %{http_code} -> %{redirect_url}\n" https://menage.themuselab.fr/ || echo "menage.themuselab.fr : injoignable"
