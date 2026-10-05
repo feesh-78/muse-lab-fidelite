@@ -39,3 +39,12 @@ jobs:
           path: _site
       - id: deployment
         uses: actions/deploy-pages@v4
+      - name: Vérifier que le site en ligne sert la nouvelle version
+        run: |
+          for i in 1 2 3 4 5 6; do
+            if curl -fsS "https://menage.themuselab.fr/menage.js?v=${GITHUB_SHA}" | grep -q "saveSuivi"; then
+              echo "Site à jour : https://menage.themuselab.fr"; exit 0
+            fi
+            sleep 20
+          done
+          echo "::warning::Le site ne sert pas encore la nouvelle version (cache GitHub Pages ?)"

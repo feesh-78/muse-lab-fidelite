@@ -2,8 +2,8 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>The Muse Lab - Ménage & Réassort</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>The Muse Lab - Suivi du jour</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -11,109 +11,83 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
-    <section class="hero">
-        <div class="hero-watermark" aria-hidden="true">clean.</div>
-        <header class="topbar">
-            <div class="brand">
-                <button class="studio-btn" data-studio="78">themuselab.<sup>78</sup></button>
-                <button class="studio-btn" data-studio="92">themuselab.<sup>92</sup></button>
-            </div>
-            <label class="who">
-                <span>Je suis</span>
-                <input type="text" id="whoInput" placeholder="Ton prénom" autocomplete="given-name">
-            </label>
-        </header>
-        <div class="hero-content">
-            <h1 id="heroTitle">ménage.</h1>
-            <p class="hero-sub">The Muse Lab · Studio <span id="studioLabel">78</span></p>
-            <p class="hero-date"><span id="dayLabel"></span> <span class="day-tag" id="dayTag"></span></p>
-            <nav class="tabs" role="tablist">
-                <button class="tab" role="tab" data-tab="menage">Ménage</button>
-                <button class="tab" role="tab" data-tab="heures">Heures</button>
-                <button class="tab" role="tab" data-tab="calendrier">Calendrier</button>
-                <button class="tab" role="tab" data-tab="achats">Achats <span class="badge" id="achatsBadge" hidden></span></button>
-            </nav>
+    <header class="top">
+        <div class="top-row">
+            <span class="brand">themuselab.</span>
+            <button class="btn-view" id="viewToggle" type="button">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>
+                <span id="viewToggleLabel">Calendrier</span>
+            </button>
         </div>
-    </section>
+        <h1 id="viewTitle">suivi du jour.</h1>
+
+        <div class="context" id="context">
+            <div class="ctx-row">
+                <span class="ctx-label">Studio</span>
+                <div class="seg" id="studioSeg">
+                    <button type="button" data-studio="78">78</button>
+                    <button type="button" data-studio="92">92</button>
+                </div>
+            </div>
+            <div class="ctx-row ctx-date" id="dateRow">
+                <button type="button" class="round" id="prevDay" aria-label="Jour précédent">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M15 18l-6-6 6-6"/></svg>
+                </button>
+                <button type="button" class="date-label" id="todayBtn">
+                    <strong id="dayLabel"></strong>
+                    <small id="dayTag"></small>
+                </button>
+                <button type="button" class="round" id="nextDay" aria-label="Jour suivant">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M9 18l6-6-6-6"/></svg>
+                </button>
+            </div>
+            <div class="ctx-row" id="personRow">
+                <span class="ctx-label">Qui ?</span>
+                <div class="seg seg-people" id="personSeg"></div>
+            </div>
+        </div>
+    </header>
 
     <main class="page">
         <div id="setupNotice" class="notice" hidden>
-            Dernière étape d'installation : les tables ne sont pas encore créées dans Supabase.
-            Ouvrez <a href="https://supabase.com/dashboard/project/nxqttyosjjirqtcvfkbk/sql/new" target="_blank" rel="noopener">l'éditeur SQL Supabase</a>,
-            collez le contenu de <a href="https://github.com/feesh-78/muse-lab-fidelite/blob/main/menage-setup.sql" target="_blank" rel="noopener">menage-setup.sql</a>,
-            cliquez sur <strong>Run</strong>, puis rechargez cette page.
+            Connexion à la base impossible ou tables manquantes. Vérifiez la connexion internet, puis rechargez la page.
         </div>
 
-        <!-- Ménage -->
-        <section id="listPanel" class="panel">
-            <div class="progress-card">
-                <div class="progress-head">
-                    <span class="eyebrow" id="listEyebrow">Étapes du ménage</span>
-                    <span class="progress-count" id="progressCount">0 / 0</span>
-                </div>
-                <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <!-- ================= Suivi du jour ================= -->
+        <section id="suiviView">
+            <div id="futureNotice" class="notice" hidden>
+                Ce jour n’est pas encore arrivé : seule la transmission peut être préparée.
             </div>
 
-            <ul class="task-list" id="taskList"></ul>
-
-            <form class="add-row" id="addForm">
-                <input type="text" id="addInput" placeholder="Ajouter une étape…" maxlength="120" required>
-                <button type="submit" class="btn btn-dark">Ajouter</button>
-            </form>
-
-            <div class="list-footer">
-                <button class="link-btn" id="editToggle">Modifier la liste</button>
-                <button class="link-btn" id="resetDay">Tout décocher pour aujourd'hui</button>
-            </div>
-
-            <section class="notes">
-                <div class="section-head">
-                    <h2>transmissions.</h2>
-                    <span class="eyebrow">Studio <span class="studio-inline"></span></span>
+            <!-- 1. Ménage -->
+            <section class="block" id="blockMenage">
+                <div class="block-head">
+                    <h2><span class="num">1</span>Ménage</h2>
+                    <span class="count" id="menageCount"></span>
                 </div>
-                <div id="notesNotice" class="notice" hidden>
-                    Pour activer les transmissions, exécutez une fois
-                    <a href="https://github.com/feesh-78/muse-lab-fidelite/blob/main/menage-notes.sql" target="_blank" rel="noopener">menage-notes.sql</a>
-                    dans <a href="https://supabase.com/dashboard/project/nxqttyosjjirqtcvfkbk/sql/new" target="_blank" rel="noopener">l'éditeur SQL Supabase</a>, puis rechargez la page.
-                </div>
-                <ul class="note-list" id="notesList"></ul>
-                <form class="note-form" id="noteForm">
-                    <textarea id="noteInput" rows="2" maxlength="1000" placeholder="Une info pour la prochaine équipe ? (produit manquant, souci, rappel…)" required></textarea>
-                    <button type="submit" class="btn btn-bordeaux" id="noteSubmit">Transmettre</button>
+                <ul class="task-list" id="menageList"></ul>
+                <form class="add-row" id="addMenageForm" hidden>
+                    <input type="text" id="addMenageInput" placeholder="Nouvelle étape de ménage…" maxlength="120" required>
+                    <button type="submit" class="btn-small">Ajouter</button>
                 </form>
-                <div class="prev-notes" id="prevNotesWrap" hidden>
-                    <span class="eyebrow">Transmissions précédentes</span>
-                    <ul class="note-list" id="prevNotesList"></ul>
-                </div>
+                <button type="button" class="btn-ghost" id="allDone">Tout est fait</button>
             </section>
 
-            <div class="achat-cta" id="achatCta">
-                <div>
-                    <p class="cta-title">Il manque quelque chose ?</p>
-                    <p class="cta-text">Signalez un achat : l'équipe reçoit un email à team@themuselab.fr.</p>
+            <!-- 2. Heures -->
+            <section class="block" id="blockHeures">
+                <div class="block-head">
+                    <h2><span class="num">2</span>Heures passées</h2>
+                    <span class="sub" id="hoursWho"></span>
                 </div>
-                <button class="btn btn-bordeaux" data-goto="achats">Signaler un achat</button>
-            </div>
-        </section>
-
-        <!-- Heures -->
-        <section id="heuresPanel" class="panel" hidden>
-            <div id="heuresNotice" class="notice" hidden>
-                Pour activer le suivi des heures, exécutez une fois
-                <a href="https://github.com/feesh-78/muse-lab-fidelite/blob/main/menage-heures.sql" target="_blank" rel="noopener">menage-heures.sql</a>
-                dans <a href="https://supabase.com/dashboard/project/nxqttyosjjirqtcvfkbk/sql/new" target="_blank" rel="noopener">l'éditeur SQL Supabase</a>, puis rechargez la page.
-            </div>
-
-            <form class="card heures-form" id="heuresForm">
-                <span class="eyebrow">Qui a fait le ménage ?</span>
-                <div class="person-picks" id="personPicks"></div>
-                <span class="eyebrow">Combien d'heures ?</span>
-                <div class="hours-stepper">
-                    <button type="button" class="step-btn" id="hoursMinus" aria-label="Moins 30 minutes">−</button>
-                    <output id="hoursValue">2h</output>
-                    <button type="button" class="step-btn" id="hoursPlus" aria-label="Plus 30 minutes">+</button>
+                <div id="heuresNotice" class="notice" hidden>
+                    Le suivi des heures n’est pas activé dans la base (table <code>menage_heures</code> absente).
                 </div>
-                <div class="quick-picks" id="hoursQuick">
+                <div class="stepper" id="hoursStepper">
+                    <button type="button" class="step" id="hoursMinus" aria-label="Moins 30 minutes">−</button>
+                    <output id="hoursValue" aria-live="polite">0h</output>
+                    <button type="button" class="step" id="hoursPlus" aria-label="Plus 30 minutes">+</button>
+                </div>
+                <div class="chips" id="hoursQuick">
                     <button type="button" class="chip" data-h="1">1h</button>
                     <button type="button" class="chip" data-h="1.5">1h30</button>
                     <button type="button" class="chip" data-h="2">2h</button>
@@ -121,47 +95,63 @@
                     <button type="button" class="chip" data-h="3">3h</button>
                     <button type="button" class="chip" data-h="4">4h</button>
                 </div>
-                <label class="field">
-                    <span>Note (facultatif)</span>
-                    <input type="text" id="heuresNote" placeholder="Ex. grand ménage, vitres…" maxlength="200">
-                </label>
-                <button type="submit" class="btn btn-bordeaux btn-block" id="heuresSubmit">Enregistrer</button>
-                <p class="form-hint" id="heuresHint"></p>
-            </form>
+                <p class="hint" id="hoursOthers"></p>
+            </section>
 
-            <div class="section-head">
-                <h2>ce jour.</h2>
-                <span class="eyebrow" id="heuresDayTotal"></span>
-            </div>
-            <ul class="achat-list" id="heuresDayList"></ul>
-
-            <div class="card recap">
-                <div class="cal-head">
-                    <button class="icon-btn" id="hPrevMonth" aria-label="Mois précédent">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
-                    </button>
-                    <h2 id="recapLabel"></h2>
-                    <button class="icon-btn" id="hNextMonth" aria-label="Mois suivant">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
-                    </button>
+            <!-- 3. Réassort -->
+            <section class="block" id="blockReassort">
+                <div class="block-head">
+                    <h2><span class="num">3</span>Réassort</h2>
                 </div>
-                <table class="recap-table">
-                    <thead><tr><th></th><th>Studio 78</th><th>Studio 92</th><th>Total</th></tr></thead>
-                    <tbody id="recapBody"></tbody>
-                </table>
+                <p class="hint">« Remis » : c’est fait. « Manque » : à acheter, l’équipe est prévenue.</p>
+                <ul class="restock-list" id="restockList"></ul>
+                <form class="add-row" id="addRestockForm" hidden>
+                    <input type="text" id="addRestockInput" placeholder="Nouveau produit (ex. Savon)…" maxlength="60" required>
+                    <button type="submit" class="btn-small">Ajouter</button>
+                </form>
+                <form class="add-row" id="needForm">
+                    <input type="text" id="needInput" placeholder="Autre produit…" maxlength="120" required>
+                    <button type="submit" class="btn-small">Signaler</button>
+                </form>
+                <div class="pending" id="pendingWrap" hidden>
+                    <h3>À acheter</h3>
+                    <ul class="pending-list" id="pendingList"></ul>
+                </div>
+                <details class="history" id="boughtWrap" hidden>
+                    <summary>Achats déjà faits</summary>
+                    <ul class="pending-list" id="boughtList"></ul>
+                </details>
+            </section>
+
+            <!-- 4. Transmission -->
+            <section class="block" id="blockNote">
+                <div class="block-head">
+                    <h2><span class="num">4</span>Transmission</h2>
+                    <span class="sub">facultatif</span>
+                </div>
+                <div id="notesNotice" class="notice" hidden>
+                    Les transmissions ne sont pas activées dans la base (table <code>menage_notes</code> absente).
+                </div>
+                <textarea id="noteInput" rows="2" maxlength="280" placeholder="Une info pour la prochaine équipe ?"></textarea>
+                <ul class="notes" id="notesList"></ul>
+            </section>
+
+            <div class="list-tools">
+                <button type="button" class="link-btn" id="editToggle">Modifier les listes</button>
+                <p class="hint" id="editHint" hidden>Les changements de liste sont enregistrés tout de suite.</p>
             </div>
         </section>
 
-        <!-- Calendrier -->
-        <section id="calendarPanel" class="panel" hidden>
-            <div class="card cal-card">
+        <!-- ================= Calendrier ================= -->
+        <section id="calendarView" hidden>
+            <div class="block">
                 <div class="cal-head">
-                    <button class="icon-btn" id="prevMonth" aria-label="Mois précédent">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
+                    <button class="round round-light" id="prevMonth" aria-label="Mois précédent">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M15 18l-6-6 6-6"/></svg>
                     </button>
                     <h2 id="monthLabel"></h2>
-                    <button class="icon-btn" id="nextMonth" aria-label="Mois suivant">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
+                    <button class="round round-light" id="nextMonth" aria-label="Mois suivant">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><path d="M9 18l6-6-6-6"/></svg>
                     </button>
                 </div>
                 <div class="cal-grid cal-weekdays">
@@ -170,66 +160,28 @@
                 <div class="cal-grid" id="calGrid"></div>
                 <div class="cal-legend">
                     <span><i class="lg lg-full"></i>Ménage fait</span>
-                    <span><i class="lg lg-part"></i>Ménage commencé</span>
+                    <span><i class="lg lg-part"></i>Commencé</span>
                     <span><b class="lg-hours">2h</b>Heures</span>
                     <span><i class="lg lg-note"></i>Transmission</span>
                 </div>
+                <p class="hint">Touchez un jour pour ouvrir son suivi.</p>
             </div>
             <div class="cal-summary" id="calSummary"></div>
-            <p class="form-hint">Touchez un jour pour voir le détail et les transmissions.</p>
-        </section>
-
-        <!-- Achats -->
-        <section id="achatsPanel" class="panel" hidden>
-            <form class="card achat-form" id="achatForm">
-                <span class="eyebrow">Nouvel achat à prévoir</span>
-                <div class="quick-picks" id="quickPicks">
-                    <button type="button" class="chip">Bonbons</button>
-                    <button type="button" class="chip">Eau</button>
-                    <button type="button" class="chip">Papier toilette</button>
-                    <button type="button" class="chip">Savon</button>
-                    <button type="button" class="chip">Produit ménager</button>
-                    <button type="button" class="chip">Sacs poubelle</button>
-                </div>
-                <label class="field">
-                    <span>Article</span>
-                    <input type="text" id="achatArticle" placeholder="Ex. bouteilles d'eau 50 cl" maxlength="120" required>
-                </label>
-                <label class="field">
-                    <span>Quantité</span>
-                    <input type="text" id="achatQuantite" placeholder="Ex. 2 packs" maxlength="60">
-                </label>
-                <label class="field">
-                    <span>Note (facultatif)</span>
-                    <textarea id="achatNote" rows="2" placeholder="Marque, urgence, où acheter…" maxlength="500"></textarea>
-                </label>
-                <button type="submit" class="btn btn-bordeaux btn-block" id="achatSubmit">Envoyer à l'équipe</button>
-                <p class="form-hint">Un email est envoyé à <strong>team@themuselab.fr</strong>.</p>
-            </form>
-
-            <div class="section-head">
-                <h2>à acheter.</h2>
-                <span class="eyebrow" id="achatsCount"></span>
+            <div class="block">
+                <h2 class="block-title">Heures du mois</h2>
+                <table class="recap-table">
+                    <thead><tr><th></th><th>Studio 78</th><th>Studio 92</th><th>Total</th></tr></thead>
+                    <tbody id="recapBody"></tbody>
+                </table>
             </div>
-            <ul class="achat-list" id="achatList"></ul>
         </section>
     </main>
 
-    <!-- Navigation par jour -->
-    <nav class="day-bar" id="dayBar" aria-label="Changer de jour">
-        <button class="day-nav" id="prevDay">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M15 18l-6-6 6-6"/></svg>
-            <span>Jour précédent</span>
-        </button>
-        <button class="day-current" id="todayBtn">
-            <span id="dayBarLabel"></span>
-            <small id="dayBarHint"></small>
-        </button>
-        <button class="day-nav" id="nextDay">
-            <span>Jour suivant</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 18l6-6-6-6"/></svg>
-        </button>
-    </nav>
+    <!-- Action principale -->
+    <div class="save-bar" id="saveBar">
+        <p class="save-status" id="saveStatus" role="status" aria-live="polite"></p>
+        <button type="button" class="btn-save" id="saveBtn">Enregistrer le suivi</button>
+    </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
