@@ -79,7 +79,7 @@ export function modal(build, { label = 'fenêtre' } = {}) {
         document.body.append(overlay);
         document.addEventListener('keydown', onKey);
         const first = box.querySelector('input, textarea, select, button.primary');
-        if (first) setTimeout(() => first.focus(), 30);
+        if (first) first.focus();
     });
 }
 

@@ -1,7 +1,10 @@
 // 01 · Accueil : ce que je vois en ouvrant l'outil
 import { h, img, eyebrow, sectionHead, progressBar, pickFiles, makeDroppable, toast } from '../ui.js';
 import { singleton, all, update, uploadFile } from '../store.js';
-import { FILTER_BRANDS, brand, projects, progress, todayTasks, taskBrand, num, DEFAULT_PALETTE } from '../data.js';
+import { FILTER_BRANDS, brand, projects, progress, todayTasks, taskBrand, num, DEFAULT_PALETTE, calendarItems, handle } from '../data.js';
+import { openItem } from './calendar.js';
+import { moodQuick } from './wellbeing.js';
+import { postDialog } from './social.js';
 import { today, addDays, longDate, dayNum, dayMonth, daysBetween, fullDate } from '../dates.js';
 import { moodboard, palette, taskList, taskAdder } from '../components.js';
 import { state } from '../state.js';
@@ -67,18 +70,19 @@ function todo() {
 }
 
 function week() {
-    const start = addDays(today(), 1);
-    const end = addDays(today(), 7);
-    const inWeek = (d) => d && d >= start && d <= end;
-    const rows = [
-        ...all('event', (e) => inWeek(e.date) && matches(e.calendar)).map((e) => ({ date: e.date, text: e.title })),
-        ...all('task', (t) => !t.done && inWeek(t.due) && matches(taskBrand(t).id)).map((t) => ({ date: t.due, text: `deadline · ${t.title}` })),
-        ...projects((p) => inWeek(p.keyDate) && p.status !== 'archive' && matches(p.brand)).map((p) => ({ date: p.keyDate, text: `${p.keyLabel || 'date clé'} · ${p.name}` })),
-    ].sort((a, b) => a.date.localeCompare(b.date));
+    // Tout ce qui est daté dans les 7 prochains jours : rendez-vous, deadlines, dates clés, contenus
+    const itemBrand = (it) => {
+        if (it.type === 'task') return taskBrand(it.ref).id;
+        if (it.type === 'project') return it.ref.brand;
+        if (it.type === 'event') return it.ref.calendar;
+        if (it.type === 'post') return it.ref.account === 'velvet' ? 'velvet' : 'perso';
+        return 'perso';
+    };
+    const rows = calendarItems(addDays(today(), 1), addDays(today(), 7)).filter((it) => matches(itemBrand(it)));
     return h('section', { class: 'card', 'aria-labelledby': 't-sem' },
         h('h2', { id: 't-sem' }, 'cette semaine.'),
         rows.length
-            ? h('div', { class: 'rows' }, rows.slice(0, 7).map((r) => h('div', { class: 'week-row' }, h('span', { class: 'week-day' }, dayNum(r.date)), h('span', null, r.text))))
+            ? h('div', { class: 'rows' }, rows.slice(0, 7).map((r) => h('button', { type: 'button', class: 'week-row', onclick: () => openItem(r) }, h('span', { class: 'week-day' }, dayNum(r.date)), h('span', null, r.title))))
             : h('p', { class: 'empty' }, 'rien de prévu cette semaine.'),
         h('a', { href: '#/calendrier', class: 'btn self-start' }, 'voir le calendrier'));
 }
@@ -88,7 +92,7 @@ function toPost() {
     return h('section', { class: 'card', 'aria-labelledby': 't-post' },
         h('h2', { id: 't-post', class: 'h-small' }, 'à poster aujourd\'hui.'),
         posts.length
-            ? posts.map((p) => h('div', { class: 'post-line' }, h('span', null, `${p.format || 'post'} · ${p.title}`), h('span', { class: 'muted' }, p.account || '')))
+            ? posts.map((p) => h('button', { type: 'button', class: 'post-line', onclick: () => postDialog(p) }, h('span', null, `${p.format || 'post'} · ${p.title}${p.time ? ` · ${p.time.replace(':', 'h')}` : ''}`), h('span', { class: 'muted' }, handle(p.account))))
             : h('p', { class: 'empty' }, 'rien de programmé aujourd\'hui.'),
         h('a', { href: '#/social', class: 'link' }, 'ouvrir social media'));
 }
@@ -135,5 +139,6 @@ export function renderHome() {
             h('div', { class: 'col-3' }, todo()),
             h('div', { class: 'col-2 stack' }, week(), toPost())),
         mood,
-        projectCards());
+        projectCards(),
+        state.mobile ? moodQuick() : null);
 }

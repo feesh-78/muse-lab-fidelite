@@ -2,7 +2,7 @@
 // Une tâche, un projet, un rendez-vous n'existent qu'une fois : chaque page lit la même source.
 // Chaque modification est enregistrée automatiquement (en ligne via Supabase, ou sur l'appareil en mode démo).
 import { SUPABASE_URL, SUPABASE_ANON_KEY, TABLE, BUCKET } from '../config.js';
-import { seedItems } from './data.js';
+import { seedItems, missingSeed, SEED_VERSION } from './data.js';
 
 const LS_CACHE = 'pilotage-cache-v1';
 const LS_PENDING = 'pilotage-pending-v1';
@@ -47,12 +47,12 @@ export function singleton(kind, defaults = {}) {
 }
 
 // ---------- Écriture ----------
-export function create(kind, fields = {}) {
+export function create(kind, fields = {}, { quiet = false } = {}) {
     const id = fields.id || uid();
     const it = { ...fields, id, kind, createdAt: fields.createdAt || new Date().toISOString() };
     items.set(id, it);
     markDirty(id);
-    emit('create');
+    if (!quiet) emit('create');
     return it;
 }
 // quiet : enregistre sans redessiner la page (frappe dans un champ texte)
@@ -176,7 +176,7 @@ export async function startCloud(session) {
         JSON.parse(localStorage.getItem(LS_PENDING) || '[]').forEach((id) => pending.add(id));
     } catch { /* cache illisible : on repart du serveur */ }
     await reload();
-    if (!items.size) seed();
+    if (!items.size) seed(); else upgradeSeed();
     if (pending.size) flush();
 }
 
@@ -187,7 +187,18 @@ export function startDemo() {
         const saved = JSON.parse(localStorage.getItem(LS_DEMO) || '[]');
         saved.forEach((it) => items.set(it.id, it));
     } catch { /* rien */ }
-    if (!items.size) seed();
+    if (!items.size) seed(); else upgradeSeed();
+}
+
+// Une base créée avant les nouvelles pages reçoit leur contenu de départ, une seule fois
+function upgradeSeed() {
+    const profile = items.get('profile');
+    if (!profile || (profile.seedVersion || 1) >= SEED_VERSION) return;
+    missingSeed(new Set(items.keys())).forEach((it) => { items.set(it.id, it); pending.add(it.id); });
+    profile.seedVersion = SEED_VERSION;
+    pending.add('profile');
+    persistLocal();
+    flush();
 }
 
 function seed() {

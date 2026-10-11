@@ -6,6 +6,12 @@ import { today, shortDate } from './dates.js';
 import { renderHome, profile } from './views/home.js';
 import { renderProjects, newProjectDialog } from './views/projects.js';
 import { renderProject } from './views/project.js';
+import { renderCalendar } from './views/calendar.js';
+import { renderSocial } from './views/social.js';
+import { renderBudget } from './views/budget.js';
+import { renderNewYork } from './views/newyork.js';
+import { renderWellbeing } from './views/wellbeing.js';
+import { renderBucket } from './views/bucket.js';
 
 const SECTIONS = [
     { id: 'accueil', label: 'accueil' },
@@ -18,9 +24,15 @@ const SECTIONS = [
     { id: 'bucket', label: 'bucket list' },
 ];
 const MOBILE_TABS = ['accueil', 'projets', 'calendrier', 'bien-etre'];
-// Pages des étapes suivantes
-const COMING = {
-    calendrier: 2, 'bien-etre': 3, budget: 4, social: 5, 'new-york': 5, bucket: 5,
+const PAGES = {
+    accueil: renderHome,
+    projets: renderProjects,
+    calendrier: renderCalendar,
+    social: renderSocial,
+    budget: renderBudget,
+    'new-york': renderNewYork,
+    'bien-etre': renderWellbeing,
+    bucket: renderBucket,
 };
 
 const root = document.getElementById('app');
@@ -55,7 +67,7 @@ function renderLogin(message) {
                     }
                 },
             }, email, password, submit, error),
-            h('button', { type: 'button', class: 'link plain', onclick: () => startApp(() => store.startDemo()) }, 'découvrir en mode démo (données gardées sur cet appareil)'))));
+            h('button', { type: 'button', class: 'link plain', onclick: () => startApp(() => store.startDemo()) }, 'essayer en mode démo · les données restent sur cet appareil, rien n\'est envoyé en ligne'))));
 }
 
 async function startApp(starter) {
@@ -148,15 +160,6 @@ async function logout() {
     location.reload();
 }
 
-function comingSoon(page) {
-    const s = SECTIONS.find((x) => x.id === page);
-    return h('div', { class: 'page' },
-        h('header', { class: 'page-head' }, h('div', { class: 'stack-sm' }, h('div', { class: 'eyebrow' }, `étape ${COMING[page]} de la construction`), h('h1', { class: 'title' }, `${s.label}.`))),
-        h('section', { class: 'card stack' },
-            h('p', null, 'Cette page arrive à la prochaine étape. Tout ce que tu saisis déjà (tâches datées, projets) y apparaîtra automatiquement.'),
-            h('a', { href: '#/accueil', class: 'btn self-start' }, 'retour à l\'accueil')));
-}
-
 function render() {
     const { page, param } = route();
     // On mémorise le champ actif et la position pour les retrouver après le nouveau dessin
@@ -164,15 +167,16 @@ function render() {
     const scroll = window.scrollY;
     store.saveState.listeners.clear();
     let content;
-    if (page === 'accueil') content = renderHome();
-    else if (page === 'projets') content = renderProjects();
-    else if (page === 'projet') content = renderProject(param);
-    else if (COMING[page]) content = comingSoon(page);
+    if (page === 'projet') content = renderProject(param);
+    else if (PAGES[page]) content = PAGES[page]();
     else { location.hash = '#/accueil'; return; }
 
+    const banner = store.getMode() === 'demo' ? h('div', { class: 'demo-banner', role: 'note' },
+        h('strong', null, 'mode démo'), ' · tes données restent sur cet appareil : pas de sauvegarde en ligne, pas de synchronisation avec ton téléphone ou ton ordinateur. ',
+        h('button', { type: 'button', class: 'link plain', onclick: logout }, 'se connecter à mon compte')) : null;
     const shell = h('div', { class: 'shell' },
         state.mobile ? mobileTop() : sideNav(page),
-        h('main', { class: 'main', id: 'main' }, content),
+        h('main', { class: 'main', id: 'main' }, banner, content),
         state.mobile ? bottomBar(page) : null);
     root.replaceChildren(shell);
     window.scrollTo(0, scroll);
