@@ -14,7 +14,7 @@ export function connectionsDialog() {
                 h('button', { type: 'button', class: 'btn ghost small', onclick: () => close(null) }, 'fermer')),
             getMode() !== 'cloud'
                 ? h('p', { class: 'muted' }, 'disponible une fois connectée à ton compte (pas en mode démo).')
-                : [agendaPart(draw), remindersPart(draw)],
+                : h('div', { class: 'stack' }, agendaPart(draw), remindersPart(draw)),
         );
         draw();
         // État à jour (relié depuis un autre appareil ?) puis nouveau dessin, sauf si une saisie est en cours
