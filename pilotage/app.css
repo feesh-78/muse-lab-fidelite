@@ -741,3 +741,22 @@ textarea.field { padding: 16px 18px; line-height: 1.5; resize: vertical; }
 
 .nowrap { white-space: nowrap; }
 
+
+/* ---------- iCloud et rappels ---------- */
+.modal .muted { white-space: pre-line; }
+.connect-part { border-top: 1px solid var(--filet); padding-top: 16px; }
+.steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.steps ul { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.steps-box summary { cursor: pointer; font-weight: 700; font-size: 14px; padding: 6px 0; }
+.steps-box[open] summary { margin-bottom: 8px; }
+.map-row { display: grid; grid-template-columns: 14px minmax(0, 1fr) minmax(0, 1.4fr); align-items: center; gap: 10px; font-size: 15px; }
+.map-row .field { min-width: 0; }
+.copy-line { display: flex; gap: 8px; align-items: center; }
+.copy-line .field { flex: 1; min-width: 0; font-size: 13px; text-transform: none; letter-spacing: 0; }
+.icloud-where:empty { display: none; }
+.task-group { margin: 14px 0 4px; }
+.task-group:first-child { margin-top: 0; }
+@media (max-width: 520px) {
+    .map-row { grid-template-columns: 14px minmax(0, 1fr); }
+    .map-row .field { grid-column: 1 / -1; }
+}

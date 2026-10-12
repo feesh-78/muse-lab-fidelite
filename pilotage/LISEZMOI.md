@@ -28,6 +28,18 @@ Adresses :
   de passe au compte déjà créé par Philippe (plus de lien par email) et ne crée aucun compte.
 - Les fichiers `.sql` et `.md` ne sont pas publiés sur le site.
 
+## iCloud et rappels (menu « iCloud et rappels », ou bouton « relier iCloud » du calendrier)
+- **Agenda iCloud, dans les deux sens** : Maryse crée un *mot de passe d'application* sur account.apple.com
+  (Connexion et sécurité > Mots de passe pour apps) et le colle dans l'outil avec son identifiant Apple.
+  Chaque calendrier de l'outil (the muse lab, velvet, creative, perso) est relié à l'agenda iCloud de son choix :
+  ses rendez-vous iPhone s'affichent dans le calendrier, et une date ajoutée, modifiée ou supprimée ici l'est aussi sur l'iPhone.
+  Les deadlines de tâches restent dans l'outil.
+- **Rappels** : Apple ne donne aucun accès aux Rappels depuis un site. Un raccourci de l'iPhone (app Raccourcis)
+  envoie les rappels non terminés à l'adresse affichée dans l'outil ; le mode d'emploi est dans la même fenêtre.
+- Mise en place (une fois) : exécuter `connexions-icloud.sql` dans Supabase, et la variable `ICLOUD_KEY`
+  (32 octets en base64) dans Vercel > Settings > Environment Variables. Elle chiffre le mot de passe d'application.
+- Fonctions serveur : dossier `api/` (Vercel). Elles ne marchent pas sur la copie GitHub Pages.
+
 ## Pages
 01 accueil · 02 projets et fiches projet · 03 calendrier · 04 social media · 05 budget perso ·
 06 objectif new york · 07 bien-être · 08 bucket list.

@@ -1,10 +1,12 @@
 // 03 · Calendrier : vue mois et vue semaine, 4 calendriers + contenus à poster + deadlines de to-do
-import { h, eyebrow, modal, confirmDialog } from '../ui.js';
+import { h, eyebrow, modal, confirmDialog, toast } from '../ui.js';
 import { create, update, remove, singleton, get } from '../store.js';
 import { CALENDARS, LAYERS, calendarOf, calendarItems, nextBigEvent, weekStart } from '../data.js';
 import { today, addDays, fromKey, toKey, dayNum, shortDate, daysBetween } from '../dates.js';
 import { state } from '../state.js';
 import { postDialog } from './social.js';
+import { icloud, isConnected, targetOf, saveEvent, deleteEvent, errorText } from '../icloud.js';
+import { connectionsDialog } from './connexions.js';
 
 const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
 const JOURS = ['lun', 'mar', 'mer', 'jeu', 'ven', 'sam', 'dim'];
@@ -13,41 +15,82 @@ const prefs = () => singleton('profile');
 const hidden = () => prefs().hiddenCalendars || [];
 
 // ---------- Fenêtres d'ajout et de modification ----------
+// Un rendez-vous vit dans l'outil, ou dans l'agenda iCloud quand son calendrier y est relié
 export function eventDialog(event, date = today()) {
-    const e = event || { title: '', date, time: '', calendar: 'perso', repeat: null, big: false };
+    const fromICloud = event?.source === 'icloud';
+    const e = event
+        ? { ...event, repeat: fromICloud ? (event.weekly ? 'weekly' : null) : event.repeat }
+        : { title: '', date, time: '', calendar: 'perso', repeat: null, big: false };
     return modal((box, close) => {
         const title = h('input', { class: 'field', placeholder: 'intitulé', value: e.title, required: true, 'aria-label': 'intitulé' });
         const day = h('input', { class: 'field', type: 'date', value: e.date, required: true, 'aria-label': 'date' });
         const time = h('input', { class: 'field', type: 'time', value: e.time || '', 'aria-label': 'heure' });
-        const cal = h('select', { class: 'field', 'aria-label': 'calendrier' }, CALENDARS.map((c) => h('option', { value: c.id }, c.label)));
+        const cal = h('select', { class: 'field', 'aria-label': 'calendrier', onchange: () => showWhere() }, CALENDARS.map((c) => h('option', { value: c.id }, c.label)));
         cal.value = e.calendar;
         const weekly = h('input', { type: 'checkbox', checked: e.repeat === 'weekly' });
         const big = h('input', { type: 'checkbox', checked: !!e.big });
+        const where = h('p', { class: 'small muted icloud-where' });
+        const error = h('p', { class: 'login-error', role: 'alert' });
+        const submit = h('button', { type: 'submit', class: 'btn primary' }, event ? 'enregistrer' : 'ajouter');
+        function showWhere() {
+            const target = targetOf(cal.value);
+            const name = target && (icloud.status.calendars || []).find((c) => c.url === target)?.name;
+            where.textContent = target ? `synchronisé avec ton agenda iCloud « ${name || 'iCloud'} »` : (isConnected() ? 'gardé dans l\'outil (ce calendrier n\'est relié à aucun agenda iCloud)' : '');
+        }
+        showWhere();
+        const busy = (on) => { box.querySelectorAll('button').forEach((b) => { b.disabled = on; }); };
         box.append(h('form', {
-            onsubmit: (ev) => {
+            onsubmit: async (ev) => {
                 ev.preventDefault();
                 if (!title.value.trim() || !day.value) return;
                 const fields = { title: title.value.trim(), date: day.value, time: time.value, calendar: cal.value, repeat: weekly.checked ? 'weekly' : null, big: big.checked };
-                if (event) update(event.id, fields); else create('event', fields);
-                close(true);
+                const target = targetOf(fields.calendar);
+                error.textContent = '';
+                busy(true);
+                try {
+                    if (target) {
+                        await saveEvent(fields, fromICloud ? event : null);
+                        if (event && !fromICloud) remove(event.id);
+                    } else {
+                        if (fromICloud) await deleteEvent(event);
+                        if (event && !fromICloud) update(event.id, fields); else create('event', fields);
+                    }
+                    close(true);
+                } catch (err) {
+                    console.error(err);
+                    busy(false);
+                    if (!event && (err.code === 'offline' || err.status >= 500)) {
+                        // Rien n'est perdu : la date reste dans l'outil
+                        create('event', fields);
+                        toast('iCloud injoignable : la date est gardée dans l\'outil');
+                        close(true);
+                    } else error.textContent = errorText(err);
+                }
             },
         },
         h('h2', null, event ? 'modifier la date.' : 'ajouter une date.'),
         h('label', { class: 'field-label' }, 'intitulé', title),
         h('div', { class: 'two' }, h('label', { class: 'field-label' }, 'date', day), h('label', { class: 'field-label' }, 'heure', time)),
         h('label', { class: 'field-label' }, 'calendrier', cal),
+        where,
         h('label', { class: 'check-line' }, weekly, 'chaque semaine'),
         h('label', { class: 'check-line' }, big, 'grand rendez-vous (compte à rebours)'),
+        fromICloud && event.recurring ? h('p', { class: 'small muted' }, 'rendez-vous répété : les changements s\'appliquent à toute la série.') : null,
+        error,
         h('div', { class: 'modal-actions' },
             event ? h('button', {
                 type: 'button', class: 'btn ghost danger-text push-left',
                 onclick: async () => {
                     close(null);
-                    if (await confirmDialog(`« ${event.title} » sera supprimé du calendrier${event.repeat ? ', toutes semaines comprises' : ''}.`)) remove(event.id);
+                    const all = event.repeat === 'weekly' || event.recurring;
+                    const msg = `« ${event.title} » sera supprimé du calendrier${all ? ', toutes répétitions comprises' : ''}${fromICloud ? ', et de ton agenda iCloud' : ''}.`;
+                    if (!(await confirmDialog(msg))) return;
+                    if (!fromICloud) { remove(event.id); return; }
+                    try { await deleteEvent(event); } catch (err) { toast(errorText(err)); }
                 },
             }, 'supprimer') : null,
             h('button', { type: 'button', class: 'btn ghost', onclick: () => close(null) }, 'annuler'),
-            h('button', { type: 'submit', class: 'btn primary' }, event ? 'enregistrer' : 'ajouter'))));
+            submit)));
     }, { label: 'date du calendrier' });
 }
 
@@ -207,6 +250,7 @@ export function renderCalendar() {
             h('div', { class: 'chips' },
                 chip('mois'), chip('semaine'),
                 h('button', { type: 'button', class: 'chip', onclick: () => { state.calDate = today(); state.calSelected = today(); state.rerender(); } }, 'aujourd\'hui'),
+                h('button', { type: 'button', class: `chip${isConnected() ? ' on' : ''}`, onclick: () => connectionsDialog() }, isConnected() ? 'iCloud relié' : 'relier iCloud'),
                 h('button', { type: 'button', class: 'btn primary', onclick: () => eventDialog(null, state.calSelected || today()) }, '+ ajouter une date'))),
         toggles(),
         h('div', { class: 'split cal-split' },

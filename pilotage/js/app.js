@@ -12,6 +12,8 @@ import { renderBudget } from './views/budget.js';
 import { renderNewYork } from './views/newyork.js';
 import { renderWellbeing } from './views/wellbeing.js';
 import { renderBucket } from './views/bucket.js';
+import { connectionsDialog } from './views/connexions.js';
+import * as icloud from './icloud.js';
 
 const SECTIONS = [
     { id: 'accueil', label: 'accueil' },
@@ -95,8 +97,9 @@ async function startApp(starter) {
         render();
     });
     window.addEventListener('hashchange', () => { render(); window.scrollTo(0, 0); });
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') store.reload(); });
-    setInterval(() => { if (document.visibilityState === 'visible' && !isTyping()) store.reload(); }, 120000);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { store.reload(); icloud.refresh(); } });
+    setInterval(() => { if (document.visibilityState === 'visible' && !isTyping()) { store.reload(); icloud.refresh(); } }, 120000);
+    icloud.loadStatus();
     window.matchMedia('(max-width: 820px)').addEventListener('change', (e) => { state.mobile = e.matches; render(); });
     state.rerender = render;
     render();
@@ -118,6 +121,7 @@ function sideNav(current) {
         h('div', { class: 'nav-bottom' },
             h('button', { type: 'button', class: 'btn wide', onclick: () => newProjectDialog() }, '+ nouveau projet'),
             saveIndicator(),
+            h('button', { type: 'button', class: 'link plain small', onclick: () => connectionsDialog() }, 'iCloud et rappels'),
             h('button', { type: 'button', class: 'link plain small', onclick: logout }, store.getMode() === 'demo' ? 'quitter le mode démo' : 'se déconnecter')));
 }
 
@@ -151,6 +155,7 @@ function openMenu() {
             }, h('span', { class: 'nav-num' }, String(i + 1).padStart(2, '0')), s.label))),
             h('button', { type: 'button', class: 'btn wide', onclick: () => { close(); newProjectDialog(); } }, '+ nouveau projet'),
             saveIndicator(),
+            h('button', { type: 'button', class: 'link plain small', onclick: () => { close(); connectionsDialog(); } }, 'iCloud et rappels'),
             h('button', { type: 'button', class: 'link plain small', onclick: () => { close(); logout(); } }, store.getMode() === 'demo' ? 'quitter le mode démo' : 'se déconnecter')));
     document.body.append(sheet);
 }

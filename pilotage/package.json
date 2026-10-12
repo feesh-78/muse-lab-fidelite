@@ -1,0 +1,10 @@
+{
+  "name": "pilotage",
+  "private": true,
+  "type": "module",
+  "description": "Fonctions serveur Vercel (dossier api/) : agenda iCloud et rappels. Le site lui-même n'a besoin d'aucune installation.",
+  "dependencies": {
+    "fast-xml-parser": "4.5.0",
+    "ical.js": "2.1.0"
+  }
+}
