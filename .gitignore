@@ -12,3 +12,5 @@ Thumbs.db
 
 # Dépendances des fonctions serveur (installées par Vercel)
 node_modules
+.vercel
+.env*.local
