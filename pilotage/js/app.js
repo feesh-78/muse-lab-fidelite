@@ -44,7 +44,9 @@ function route() {
 
 // ---------- Connexion ----------
 function renderLogin(message) {
-    const email = h('input', { class: 'field', type: 'email', placeholder: 'email', autocomplete: 'username', required: true, 'aria-label': 'email' });
+    let lastUser = '';
+    try { lastUser = localStorage.getItem('pilotage-user') || ''; } catch { /* rien */ }
+    const user = h('input', { class: 'field', type: 'text', placeholder: 'utilisateur', value: lastUser, autocomplete: 'username', autocapitalize: 'none', autocorrect: 'off', spellcheck: 'false', required: true, 'aria-label': 'utilisateur' });
     const password = h('input', { class: 'field', type: 'password', placeholder: 'mot de passe', autocomplete: 'current-password', required: true, 'aria-label': 'mot de passe' });
     const error = h('p', { class: 'login-error', role: 'alert' }, message || '');
     const submit = h('button', { type: 'submit', class: 'btn primary wide' }, 'entrer');
@@ -58,16 +60,19 @@ function renderLogin(message) {
                     submit.disabled = true;
                     error.textContent = '';
                     try {
-                        const session = await store.signIn(email.value.trim(), password.value);
+                        const session = await store.signIn(user.value, password.value);
+                        try { localStorage.setItem('pilotage-user', user.value.trim()); } catch { /* rien */ }
                         await startApp(() => store.startCloud(session));
                     } catch (err) {
                         console.error(err);
-                        error.textContent = /invalid/i.test(err.message || '') ? 'email ou mot de passe incorrect.' : 'connexion impossible pour le moment.';
+                        const msg = err.message || '';
+                        error.textContent = /invalid|unknown/i.test(msg) ? 'utilisateur ou mot de passe incorrect.' : 'connexion impossible pour le moment.';
                         submit.disabled = false;
                     }
                 },
-            }, email, password, submit, error),
+            }, user, password, submit, error, h('p', { class: 'small muted' }, 'Une seule fois par appareil : la connexion reste ensuite mémorisée.')),
             h('button', { type: 'button', class: 'link plain', onclick: () => startApp(() => store.startDemo()) }, 'essayer en mode démo · les données restent sur cet appareil, rien n\'est envoyé en ligne'))));
+    (lastUser ? password : user).focus();
 }
 
 async function startApp(starter) {
@@ -193,7 +198,7 @@ function render() {
     if (!window.supabase) { renderLogin('connexion indisponible (réseau ?). tu peux essayer le mode démo.'); return; }
     try {
         const session = await store.currentSession();
-        if (session) startApp(() => store.startCloud(session));
+        if (session) { store.keepStorage(); startApp(() => store.startCloud(session)); }
         else renderLogin();
     } catch (err) {
         console.error(err);
