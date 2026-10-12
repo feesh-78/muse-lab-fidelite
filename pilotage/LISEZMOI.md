@@ -13,6 +13,14 @@ Adresse une fois publiée : **https://menage.themuselab.fr/pilotage/**
 - Inscriptions publiques désactivées. Le compte de Maryse a été créé par Philippe : **aucun autre compte à créer**.
 - À vérifier : première connexion réelle de Maryse (ordinateur puis téléphone) et synchronisation entre les deux.
 
+## Connexion
+- **Utilisateur : maryse · Mot de passe : 250566** (majuscules indifférentes pour l'utilisateur).
+- Une seule connexion par appareil : la session est ensuite mémorisée et renouvelée automatiquement.
+  Sur iPhone, Safari et l'app installée sur l'écran d'accueil comptent comme deux appareils.
+- Mise en place (une fois) : exécuter `acces-maryse.sql` dans Supabase > SQL Editor. Le script donne ce mot
+  de passe au compte déjà créé par Philippe (plus de lien par email) et ne crée aucun compte.
+- Les fichiers `.sql` et `.md` ne sont pas publiés sur le site.
+
 ## Pages
 01 accueil · 02 projets et fiches projet · 03 calendrier · 04 social media · 05 budget perso ·
 06 objectif new york · 07 bien-être · 08 bucket list.
@@ -26,7 +34,7 @@ Adresse une fois publiée : **https://menage.themuselab.fr/pilotage/**
    (personne d'autre ne pourra créer de compte).
 
 ## 2. Se connecter
-Ouvrir l'adresse, entrer l'email et le mot de passe. À la première connexion, l'outil se remplit
+Ouvrir l'adresse, entrer l'utilisateur et le mot de passe. À la première connexion, l'outil se remplit
 avec le contenu des maquettes (projets, tâches) : tout est modifiable et supprimable.
 
 ## 3. Installer sur iPhone

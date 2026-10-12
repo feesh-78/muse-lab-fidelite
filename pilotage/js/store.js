@@ -134,6 +134,7 @@ window.addEventListener('pagehide', () => flush());
 export function initClient() {
     if (!client && window.supabase) {
         client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            // Session gardée sur l'appareil et renouvelée automatiquement : on ne se connecte qu'une fois par appareil
             auth: { persistSession: true, autoRefreshToken: true },
         });
     }
@@ -146,11 +147,26 @@ export async function currentSession() {
     return data.session;
 }
 
-export async function signIn(email, password) {
+// Connexion par nom d'utilisateur (« maryse ») ou par email.
+// Le nom est traduit en email par la fonction pilotage_login_email (acces-maryse.sql).
+export async function signIn(login, password) {
     initClient();
+    let email = login.trim();
+    if (!email.includes('@')) {
+        const { data, error } = await client.rpc('pilotage_login_email', { p_username: email });
+        if (error) throw error;
+        if (!data) throw new Error('unknown user');
+        email = data;
+    }
     const { data, error } = await client.auth.signInWithPassword({ email, password });
     if (error) throw error;
+    keepStorage();
     return data.session;
+}
+
+// Demande au navigateur de ne pas effacer la session et le cache : la connexion reste mémorisée sur l'appareil
+export function keepStorage() {
+    try { navigator.storage?.persist?.(); } catch { /* navigateur sans cette option */ }
 }
 
 export async function signOut() {

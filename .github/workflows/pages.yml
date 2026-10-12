@@ -36,6 +36,8 @@ jobs:
           cp menage.html _site/index.html
           # Plateforme personnelle de pilotage, sur /pilotage/
           cp -r pilotage _site/pilotage
+          # Les scripts SQL et notes internes ne sont pas publiés sur le site
+          rm -f _site/pilotage/*.sql _site/pilotage/*.md
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
