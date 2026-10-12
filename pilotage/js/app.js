@@ -66,7 +66,12 @@ function renderLogin(message) {
                     } catch (err) {
                         console.error(err);
                         const msg = err.message || '';
-                        error.textContent = /invalid|unknown/i.test(msg) ? 'utilisateur ou mot de passe incorrect.' : 'connexion impossible pour le moment.';
+                        if (err.code === 'PGRST202' || /could not find the function/i.test(msg)) {
+                            // acces-maryse.sql pas encore exécuté dans Supabase
+                            error.textContent = 'accès pas encore activé : il reste à lancer acces-maryse.sql dans Supabase. en attendant, tu peux entrer ton email à la place de « maryse ».';
+                        } else {
+                            error.textContent = /invalid|unknown/i.test(msg) ? 'utilisateur ou mot de passe incorrect.' : 'connexion impossible pour le moment.';
+                        }
                         submit.disabled = false;
                     }
                 },
