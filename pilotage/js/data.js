@@ -1,6 +1,7 @@
 // Référentiels (marques, statuts) et calculs partagés entre les pages
 import { all, get } from './store.js';
 import { today, addDays, fromKey, toKey } from './dates.js';
+import { eventsBetween } from './icloud.js';
 
 // Marques : filtre de l'accueil et étiquettes des tâches
 export const BRANDS = [
@@ -8,6 +9,7 @@ export const BRANDS = [
     { id: 'velvet', label: 'velvet company', bg: '#D9B45A', fg: '#2A160C' },
     { id: 'feline', label: 'feline', bg: '#2A160C', fg: '#FBF4EA' },
     { id: 'heely', label: 'heely', bg: '#D9A078', fg: '#2A160C' },
+    { id: 'creative', label: 'creative direction', bg: '#2A160C', fg: '#D9B45A' },
     { id: 'perso', label: 'perso', bg: '#5A3418', fg: '#FFFFFF' },
 ];
 export const FILTER_BRANDS = BRANDS.filter((b) => b.id !== 'perso');
@@ -233,7 +235,7 @@ export const toNumber = (v) => {
 
 // ---------- Tout ce qui est daté, pour le calendrier et l'accueil ----------
 // Retourne des entrées { date, time, title, type, color, ref } entre deux dates incluses
-export function calendarItems(from, to, { hidden = [] } = {}) {
+export function calendarItems(from, to, { hidden = [], loadICloud = true } = {}) {
     const out = [];
     const inRange = (d) => d && d >= from && d <= to;
     const show = (id) => !hidden.includes(id);
@@ -248,6 +250,10 @@ export function calendarItems(from, to, { hidden = [] } = {}) {
             d = addDays(d, gap * 7);
             for (; d <= to; d = addDays(d, 7)) if (d >= from && d >= e.date && !(e.until && d > e.until)) push(d);
         } else if (inRange(e.date)) push(e.date);
+    }
+    // Rendez-vous des agendas iCloud reliés (lus en arrière-plan, la page se redessine à leur arrivée)
+    for (const e of eventsBetween(from, to, { load: loadICloud })) {
+        if (show(e.calendar)) out.push({ date: e.date, time: e.time || '', title: e.title, type: 'event', cal: calendarOf(e.calendar), big: !!e.big, ref: e });
     }
     for (const p of all('project', (x) => x.status !== 'archive' && inRange(x.keyDate))) {
         const calId = brandCalendar(p.brand);
@@ -267,7 +273,7 @@ export function calendarItems(from, to, { hidden = [] } = {}) {
 // Prochain grand rendez-vous : un rendez-vous marqué « grand », ou le départ pour new york
 export function nextBigEvent() {
     const t = today();
-    return calendarItems(t, addDays(t, 730)).find((x) => x.big) || null;
+    return calendarItems(t, addDays(t, 730), { loadICloud: false }).find((x) => x.big) || null;
 }
 
 // Semaine du lundi au dimanche contenant une date

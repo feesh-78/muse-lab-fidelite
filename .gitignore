@@ -9,3 +9,6 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Dépendances des fonctions serveur (installées par Vercel)
+node_modules

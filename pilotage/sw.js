@@ -1,6 +1,6 @@
 // Garde l'application disponible même sans réseau.
 // Réseau d'abord (pour toujours avoir la dernière version), copie locale si le réseau ne répond pas.
-const CACHE = 'pilotage-v1';
+const CACHE = 'pilotage-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => {
@@ -14,6 +14,8 @@ self.addEventListener('fetch', (event) => {
     const url = new URL(request.url);
     // Les données et fichiers Supabase ne passent jamais par ce cache
     if (url.hostname.endsWith('supabase.co')) return;
+    // Ni les fonctions serveur (agenda iCloud, rappels)
+    if (url.origin === self.location.origin && url.pathname.startsWith('/api/')) return;
     const appFile = url.origin === self.location.origin || /fonts\.(googleapis|gstatic)\.com|cdn\.jsdelivr\.net/.test(url.hostname);
     if (!appFile) return;
     event.respondWith(

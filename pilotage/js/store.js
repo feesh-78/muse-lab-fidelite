@@ -147,6 +147,14 @@ export async function currentSession() {
     return data.session;
 }
 
+// Jeton de la session (renouvelé au besoin) pour les fonctions serveur de l'outil (api/)
+export async function accessToken() {
+    if (mode !== 'cloud') return null;
+    const session = await currentSession();
+    return session ? session.access_token : null;
+}
+export const getClient = () => (mode === 'cloud' ? client : null);
+
 // Connexion par nom d'utilisateur (« maryse ») ou par email.
 // Le nom est traduit en email par la fonction pilotage_login_email (acces-maryse.sql).
 export async function signIn(login, password) {
@@ -176,6 +184,7 @@ export async function signOut() {
         localStorage.removeItem(LS_CACHE);
         localStorage.removeItem(LS_PENDING);
         localStorage.removeItem('pilotage-mode');
+        localStorage.removeItem('pilotage-icloud-v1');
     } catch { /* rien */ }
     items.clear();
     mode = null;

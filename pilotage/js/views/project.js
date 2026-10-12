@@ -84,11 +84,27 @@ function concept(p) {
     ], 'cherry');
 }
 
+// Tâches rangées par thème (« campagne », « billetterie »…) quand le projet en a, dans l'ordre de p.groups
+function groupedTasks(p, tasks) {
+    const names = [...(p.groups || [])];
+    tasks.forEach((t) => { if (t.group && !names.includes(t.group)) names.push(t.group); });
+    if (!names.length) return taskList(tasks, { showBrand: false, showNumber: false });
+    const loose = tasks.filter((t) => !t.group || !names.includes(t.group));
+    return h('div', null,
+        loose.length ? taskList(loose, { showBrand: false, showNumber: false }) : null,
+        names.map((name) => {
+            const list = tasks.filter((t) => t.group === name);
+            if (!list.length) return null;
+            const done = list.filter((t) => t.done).length;
+            return [h('div', { class: 'eyebrow task-group' }, `${name} · ${done}/${list.length}`), taskList(list, { showBrand: false, showNumber: false })];
+        }));
+}
+
 function todo(p) {
     const tasks = projectTasks(p.id);
     return block('02', 'la to-do.', 'f-todo', [
         h('p', { class: 'small muted' }, 'Chaque tâche a sa deadline. Elle apparaît toute seule dans le calendrier.'),
-        tasks.length ? taskList(tasks, { showBrand: false, showNumber: false }) : h('p', { class: 'empty' }, 'pas encore de tâche.'),
+        tasks.length ? groupedTasks(p, tasks) : h('p', { class: 'empty' }, 'pas encore de tâche.'),
         taskAdder({ id: 'f-task', fields: () => ({ projectId: p.id }) }),
     ]);
 }
