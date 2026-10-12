@@ -1,7 +1,14 @@
 # pilotage. — mise en route
 
 Application web personnelle (projets, calendrier, social media, budget, bien-être…).
-Adresse une fois publiée : **https://menage.themuselab.fr/pilotage/**
+Adresses :
+- **Vercel : https://maryse-pilotage.vercel.app** (projet Vercel « maryse-pilotage », dossier racine `pilotage`)
+- GitHub Pages (secours) : https://menage.themuselab.fr/pilotage/
+
+### Publier sur Vercel (une seule fois)
+1. vercel.com > Add New > Project > importer le dépôt GitHub `feesh-78/muse-lab-fidelite`.
+2. Project Name : `maryse-pilotage` · Framework Preset : Other · Root Directory : `pilotage`.
+3. Deploy. Ensuite chaque mise à jour de `main` se publie toute seule.
 
 ## Technologies (sans outil à installer)
 - **HTML / CSS / JavaScript** simples : aucun « build », les fichiers sont publiés tels quels.

@@ -1,0 +1,3 @@
+# Fichiers internes non publiés sur Vercel
+*.sql
+*.md
