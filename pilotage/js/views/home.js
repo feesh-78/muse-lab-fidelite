@@ -3,7 +3,7 @@ import { h, img, eyebrow, sectionHead, progressBar, pickFiles, makeDroppable, to
 import { singleton, all, update, uploadFile } from '../store.js';
 import { FILTER_BRANDS, brand, projects, progress, todayTasks, taskBrand, num, DEFAULT_PALETTE, calendarItems, handle } from '../data.js';
 import { openItem } from './calendar.js';
-import { moodQuick } from './wellbeing.js';
+import { moodQuick, eveningReminder } from './wellbeing.js';
 import { postDialog } from './social.js';
 import { today, addDays, longDate, dayNum, dayMonth, daysBetween, fullDate } from '../dates.js';
 import { moodboard, palette, taskList, taskAdder } from '../components.js';
@@ -127,6 +127,7 @@ export function renderHome() {
             extra: h('div', { class: 'palette-card' }, eyebrow('ma palette'), palette('profile')),
         }));
     return h('div', { class: 'page home' },
+        eveningReminder(),
         h('section', { class: 'hero', 'aria-labelledby': 't-hello' },
             photo(p),
             h('div', { class: 'hero-side' },

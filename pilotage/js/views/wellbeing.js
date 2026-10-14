@@ -1,4 +1,4 @@
-// 07 · Bien-être : rempli chaque jour en moins d'une minute. Aucun score, aucune série, aucun reproche.
+// 07 · Bien-être : rempli chaque jour en moins d'une minute. Aucun score, aucune série ; le récap du mois donne des petits conseils doux.
 import { h, eyebrow, img, modal, confirmDialog, closeBtn, dropzone } from '../ui.js';
 import { get, create, update, deleteFile, uid } from '../store.js';
 import { today, addDays, fromKey, toKey, longDate, dayNum, fullDate } from '../dates.js';
@@ -23,6 +23,16 @@ function choiceChips(options, isOn, onPick, label, accent = true) {
     return h('div', { class: 'chips', role: 'group', 'aria-label': label }, options.map((o) => h('button', {
         type: 'button', class: `chip${isOn(o) ? (accent ? ' on cherry' : ' on') : ''}`, 'aria-pressed': String(isOn(o)), onclick: () => onPick(o),
     }, o)));
+}
+
+// Le soir (à partir de 19 h), un petit rappel tant que la journée bien-être n'est pas remplie
+export function eveningReminder() {
+    if (new Date().getHours() < 19) return null;
+    const d = getDay(today());
+    if (d.mood || d.water || d.moves.length || d.rituals.length) return null;
+    return h('div', { class: 'evening-note', role: 'note' },
+        h('strong', null, 'c\'est le soir. '), 'pense à remplir ton bien-être et à mettre à jour ta to-do. ',
+        h('a', { href: '#/bien-etre', class: 'link' }, 'remplir mon bien-être'));
 }
 
 // Petit bloc « comment je me sens » (accueil mobile)
@@ -105,11 +115,18 @@ function photosDialog(key) {
                         deleteFile(p.ref);
                         draw();
                     })))) : h('p', { class: 'empty' }, 'pas encore de photo ce jour-là.'),
-                dropzone({ label: '+ ajouter des photos', onFiles: (refs) => { addPhotos(key, refs); draw(); } }));
+                dropzone({ label: '+ ajouter des photos', onFiles: (refs) => { addPhotos(key, refs); draw(); } }),
+                h('label', { class: 'field-label', for: 'ph-note' }, 'mon texte du jour'), note);
         };
+        // Le même texte que « un mot sur ma journée » : un seul texte par jour, visible aux deux endroits
+        const note = h('textarea', {
+            id: 'ph-note', class: 'field', rows: 4, placeholder: 'ce que je veux garder de cette journée…',
+            oninput: (e) => setDay(key, { note: e.target.value }, { quiet: true }),
+        });
+        note.value = getDay(key).note || '';
         box.classList.add('wide');
         draw();
-    }, { label: 'photos du jour' });
+    }, { label: 'photos du jour' }).then(() => state.rerender());
 }
 
 function photoCalendar() {
@@ -123,14 +140,16 @@ function photoCalendar() {
         const key = toKey(new Date(first.getFullYear(), first.getMonth(), i));
         const d = getDay(key);
         const has = d.photos.length > 0;
+        const written = !!(d.note && d.note.trim());
         cells.push(h('button', {
             type: 'button', class: `ph-cell${has ? ' has' : ''}${key === t ? ' today' : ''}`, disabled: key > t && !has,
-            'aria-label': `${longDate(key)}${has ? ` · ${d.photos.length} photo${d.photos.length > 1 ? 's' : ''}` : ''}`,
+            'aria-label': `${longDate(key)}${has ? ` · ${d.photos.length} photo${d.photos.length > 1 ? 's' : ''}` : ''}${written ? ' · un texte' : ''}`,
             onclick: () => photosDialog(key),
         },
         has ? img(d.photos[0].ref, { alt: '' }) : null,
         h('span', { class: 'ph-num' }, String(i)),
-        d.photos.length > 1 ? h('span', { class: 'ph-count' }, `${d.photos.length} photos`) : null));
+        d.photos.length > 1 ? h('span', { class: 'ph-count' }, `${d.photos.length} photos`) : null,
+        written ? h('span', { class: 'ph-note', 'aria-hidden': 'true' }, '✎') : null));
     }
     const move = (n) => { state.photoMonth = toKey(new Date(first.getFullYear(), first.getMonth() + n, 1)).slice(0, 7); state.rerender(); };
     return h('section', { class: 'stack', 'aria-labelledby': 'w-photo' },
@@ -144,10 +163,63 @@ function photoCalendar() {
         h('div', { class: 'photo-cal' }, cells));
 }
 
+// Récap du mois (le même mois que le calendrier photo) : quelques chiffres et des petits mots doux
+const avg = (list) => (list.length ? list.reduce((a, b) => a + b, 0) / list.length : 0);
+const one = (n) => String(Math.round(n * 10) / 10).replace('.', ',');
+
+function monthRecap() {
+    const anchor = state.photoMonth || today().slice(0, 7);
+    const first = fromKey(`${anchor}-01`);
+    const t = today();
+    const daysIn = new Date(first.getFullYear(), first.getMonth() + 1, 0).getDate();
+    const keys = Array.from({ length: daysIn }, (_, i) => toKey(new Date(first.getFullYear(), first.getMonth(), i + 1))).filter((k) => k <= t);
+    // Seuls les jours où j'ai noté quelque chose comptent
+    const days = keys.map(getDay).filter((d) => d.id && (d.mood || d.water || d.moves.length || d.rituals.length || d.sleep || d.photos.length || (d.note && d.note.trim())));
+    const title = h('div', { class: 'section-head' }, h('h2', { id: 'w-recap' }, 'mon mois.'), eyebrow(`${MOIS[first.getMonth()]} ${first.getFullYear()}`));
+    if (!days.length) {
+        return h('section', { class: 'card', 'aria-labelledby': 'w-recap' }, title,
+            h('p', { class: 'empty' }, keys.length ? 'rien de noté ce mois-ci pour l\'instant.' : 'ce mois n\'a pas encore commencé.'));
+    }
+    const n = days.length;
+    const water = avg(days.map((d) => Number(d.water) || 0));
+    const sleeps = days.map((d) => parseFloat(d.sleep)).filter((x) => x > 0);
+    const sleep = avg(sleeps);
+    const moved = days.filter((d) => d.moves.some((m) => m !== 'repos')).length;
+    const rituals = days.filter((d) => d.rituals.length).length;
+    const photos = days.filter((d) => d.photos.length).length;
+    const written = days.filter((d) => d.note && d.note.trim()).length;
+    const moodCount = {};
+    days.forEach((d) => { if (d.mood) moodCount[d.mood] = (moodCount[d.mood] || 0) + 1; });
+    const topMood = Object.entries(moodCount).sort((a, b) => b[1] - a[1])[0];
+
+    const notes = [];
+    if (water && water < 6) notes.push(`tu n'as pas bu assez d'eau : ${one(water)} verres par jour en moyenne, vise ${GLASSES}.`);
+    else if (water >= 6) notes.push(`belle hydratation : ${one(water)} verres par jour en moyenne.`);
+    if (sleeps.length && sleep < 7) notes.push(`tes nuits sont courtes : ${one(sleep)} h en moyenne. essaie de te coucher un peu plus tôt.`);
+    else if (sleeps.length) notes.push(`tu dors bien : ${one(sleep)} h en moyenne.`);
+    if (moved / n < 0.3) notes.push('tu as peu bougé ce mois-ci : une marche ou un stretching, ça compte.');
+    else notes.push(`tu as bougé ${moved} jour${moved > 1 ? 's' : ''} sur ${n} : continue comme ça.`);
+    if (rituals / n < 0.3) notes.push('pense à t\'offrir plus de moments pour toi.');
+    if ((moodCount['fatiguée'] || 0) + (moodCount['à plat'] || 0) > n / 2) notes.push('tu as souvent été fatiguée : ralentis un peu si tu peux.');
+
+    const stat = (label, value) => h('div', { class: 'recap-stat' }, eyebrow(label), h('span', { class: 'stat' }, value));
+    return h('section', { class: 'card', 'aria-labelledby': 'w-recap' }, title,
+        h('div', { class: 'recap-stats' },
+            stat('jours notés', `${n}`),
+            stat('eau', water ? `${one(water)} verres / jour` : '–'),
+            stat('nuit', sleeps.length ? `${one(sleep)} h` : '–'),
+            stat('j\'ai bougé', `${moved} jour${moved > 1 ? 's' : ''}`),
+            stat('moments pour moi', `${rituals}`),
+            stat('humeur la plus fréquente', topMood ? topMood[0] : '–'),
+            stat('photos et textes', `${photos} · ${written}`)),
+        h('ul', { class: 'recap-notes' }, notes.map((x) => h('li', null, x))));
+}
+
 export function renderWellbeing() {
     return h('div', { class: 'page wellbeing' },
         h('header', { class: 'stack-sm' }, eyebrow(longDate(today())), h('h1', { class: 'title' }, 'prendre soin de moi.')),
         today_(),
         week(),
+        monthRecap(),
         photoCalendar());
 }
