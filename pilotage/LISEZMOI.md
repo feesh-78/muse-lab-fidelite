@@ -43,7 +43,7 @@ Adresses :
 
 ## Pages
 01 accueil · 02 projets et fiches projet · 03 calendrier · 04 social media · 05 budget perso ·
-06 objectif new york · 07 bien-être · 08 bucket list.
+06 new york life · 07 bien-être · 08 bucket list.
 
 ## 1. Préparer Supabase (déjà fait, pour mémoire)
 1. Ouvrir le projet Supabase > **SQL Editor** > **New query**.

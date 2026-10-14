@@ -21,7 +21,7 @@ const SECTIONS = [
     { id: 'calendrier', label: 'calendrier', mobile: 'agenda' },
     { id: 'social', label: 'social media' },
     { id: 'budget', label: 'budget perso' },
-    { id: 'new-york', label: 'objectif new york' },
+    { id: 'new-york', label: 'new york life' },
     { id: 'bien-etre', label: 'bien-être' },
     { id: 'bucket', label: 'bucket list' },
 ];
