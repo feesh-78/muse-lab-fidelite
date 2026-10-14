@@ -1,5 +1,5 @@
 // 02 · Tous mes projets
-import { h, img, eyebrow, progressBar, modal } from '../ui.js';
+import { h, img, eyebrow, progressBar, modal, sortable, grip } from '../ui.js';
 import { create, update } from '../store.js';
 import { BRANDS, STATUSES, brand, projects, progress, nextDeadline, num } from '../data.js';
 import { dayMonth, shortDate } from '../dates.js';
@@ -63,6 +63,25 @@ function ideaCard(p, i) {
         eyebrow([num(i), p.type].filter(Boolean).join(' · ')), h('span', { class: 'card-title big' }, `${p.name}.`));
 }
 
+// Glisser une carte par sa poignée pour choisir l'ordre (repris sur l'accueil) ; un bouton passe le projet en idée ou en cours
+function sortableCard(card, p) {
+    const to = p.status === 'idee' ? 'cours' : 'idee';
+    return h('div', { class: 'sort-card', 'data-sort-id': p.id }, card,
+        p.status === 'termine' ? null : h('button', {
+            type: 'button', class: 'status-switch', onclick: () => update(p.id, { status: to }),
+        }, to === 'idee' ? '→ idées' : '→ en cours'),
+        grip(`déplacer ${p.name}`));
+}
+
+function saveOrder(sectionIds) {
+    const list = projects();
+    const inSection = new Set(sectionIds);
+    let k = 0;
+    const next = list.map((p) => (inSection.has(p.id) ? sectionIds[k++] : p.id));
+    next.forEach((id, i) => update(id, { order: i }, { quiet: true }));
+    state.rerender();
+}
+
 export function renderProjects() {
     const active = projects((p) => p.status !== 'archive');
     const counts = {
@@ -82,12 +101,13 @@ export function renderProjects() {
     const section = (id, title, list, render, extra = []) => (show(id) ? h('section', { class: 'stack', 'aria-labelledby': `s-${id}` },
         h('h2', { id: `s-${id}` }, title),
         list.length || extra.length
-            ? h('div', { class: 'grid-cards wide' }, list.map((p) => render(p, n++)), extra)
+            ? sortable(h('div', { class: 'grid-cards wide' }, list.map((p) => sortableCard(render(p, n++), p)), extra), saveOrder)
             : h('p', { class: 'empty' }, `aucun projet ${id === 'termine' ? 'terminé' : 'en cours'} pour l'instant.`)) : null);
 
     return h('div', { class: 'page' },
         h('header', { class: 'page-head' },
-            h('div', { class: 'stack-sm' }, eyebrow(summary), h('h1', { class: 'title' }, 'tous mes projets.')),
+            h('div', { class: 'stack-sm' }, eyebrow(summary), h('h1', { class: 'title' }, 'tous mes projets.'),
+                h('p', { class: 'small muted' }, 'pour changer l\'ordre, fais glisser un projet par sa poignée ⋮⋮ : le premier s\'affiche aussi en premier sur l\'accueil. le bouton « → idées » ou « → en cours » change sa place.')),
             h('div', { class: 'chips', role: 'group', 'aria-label': 'filtrer par statut' }, chip('tout', 'tout'), STATUSES.map((s) => chip(s.id, s.label)))),
         section('cours', 'en cours.', active.filter((p) => p.status === 'cours'), projectCard),
         section('idee', 'idées.', active.filter((p) => p.status === 'idee'), ideaCard, [
