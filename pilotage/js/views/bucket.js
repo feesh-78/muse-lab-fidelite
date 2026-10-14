@@ -16,7 +16,7 @@ function wishDialog(wish) {
         const theme = h('select', { class: 'field', 'aria-label': 'thème' }, THEMES.map((t) => h('option', { value: t.id }, t.label)));
         theme.value = w.theme;
         const link = h('select', { class: 'field', 'aria-label': 'reliée à' },
-            h('option', { value: '' }, 'rien'), h('option', { value: 'ny' }, 'mon objectif new york'),
+            h('option', { value: '' }, 'rien'), h('option', { value: 'ny' }, 'new york life'),
             projects((p) => p.status !== 'archive').map((p) => h('option', { value: p.id }, `projet · ${p.name}.`)));
         link.value = w.ny ? 'ny' : w.projectId || '';
         box.append(h('form', {

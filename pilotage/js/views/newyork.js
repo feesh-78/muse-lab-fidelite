@@ -1,4 +1,4 @@
-// 06 · Objectif new york : compte à rebours, étapes datées, preuves de DA, budget du séjour, moodboard
+// 06 · New york life : compte à rebours, étapes datées, preuves de DA, budget du séjour, moodboard
 import { h, eyebrow, confirmDialog, closeBtn, progressBar } from '../ui.js';
 import { all, get, update } from '../store.js';
 import { projects, byTaskOrder, euros, toNumber } from '../data.js';
@@ -20,7 +20,7 @@ function head(p) {
         h('div', { class: 'stack-sm ny-head-text' },
             h('label', { class: 'eyebrow gold ny-date' }, 'mon objectif · départ le ',
                 h('input', { type: 'date', class: 'inline-input gold', value: p.nyDate, 'aria-label': 'date de départ', onchange: (e) => { if (e.target.value) update('profile', { nyDate: e.target.value }); } })),
-            h('h1', { class: 'display' }, 'new york.'),
+            h('h1', { class: 'display' }, 'new york life.'),
             line),
         h('div', { class: 'ny-head-count' }, h('span', { class: 'ny-count' }, `j-${days}.`), eyebrow('avant le départ', 'gold')));
 }

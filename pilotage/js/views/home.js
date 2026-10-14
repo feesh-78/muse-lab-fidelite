@@ -19,7 +19,7 @@ export function nyCard({ small = false } = {}) {
     return h('a', { href: '#/new-york', class: `ny-card${small ? ' small' : ''}` },
         h('span', { class: 'ny-text' },
             eyebrow('mon objectif', 'gold'),
-            h('span', { class: 'ny-title' }, 'new york.'),
+            h('span', { class: 'ny-title' }, 'new york life.'),
             h('span', { class: 'ny-line' }, `départ le ${fullDate(p.nyDate)}${!small && p.nyLine ? ` · ${p.nyLine}` : ''}`)),
         h('span', { class: 'ny-count' }, `j-${days}.`));
 }

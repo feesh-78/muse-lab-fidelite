@@ -111,7 +111,7 @@ export function renderProjects() {
             h('div', { class: 'chips', role: 'group', 'aria-label': 'filtrer par statut' }, chip('tout', 'tout'), STATUSES.map((s) => chip(s.id, s.label)))),
         section('cours', 'en cours.', active.filter((p) => p.status === 'cours'), projectCard),
         section('idee', 'idées.', active.filter((p) => p.status === 'idee'), ideaCard, [
-            h('a', { href: '#/new-york', class: 'card idea-card cherry' }, eyebrow('mon objectif', 'gold'), h('span', { class: 'card-title big' }, 'new york.')),
+            h('a', { href: '#/new-york', class: 'card idea-card cherry' }, eyebrow('mon objectif', 'gold'), h('span', { class: 'card-title big' }, 'new york life.')),
             h('button', { type: 'button', class: 'dropzone idea-add', onclick: () => newProjectDialog() }, '+ nouveau projet'),
         ]),
         section('termine', 'terminés.', active.filter((p) => p.status === 'termine'), projectCard),
