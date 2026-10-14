@@ -21,11 +21,12 @@ Adresses :
 - À vérifier : première connexion réelle de Maryse (ordinateur puis téléphone) et synchronisation entre les deux.
 
 ## Connexion
-- **Utilisateur : maryse · Mot de passe : 250566** (majuscules indifférentes pour l'utilisateur).
+- **Utilisateur : maryse** (majuscules indifférentes). Le mot de passe n'est écrit nulle part dans le dépôt, qui est public.
+- Pour le changer : menu > **changer mon mot de passe** (le mot de passe actuel est demandé).
 - Une seule connexion par appareil : la session est ensuite mémorisée et renouvelée automatiquement.
   Sur iPhone, Safari et l'app installée sur l'écran d'accueil comptent comme deux appareils.
-- Mise en place (une fois) : exécuter `acces-maryse.sql` dans Supabase > SQL Editor. Le script donne ce mot
-  de passe au compte déjà créé par Philippe (plus de lien par email) et ne crée aucun compte.
+- Mise en place (une fois) : exécuter `acces-maryse.sql` dans Supabase > SQL Editor. Le script donne le mot
+  de passe choisi (à écrire dans Supabase, jamais dans le fichier) au compte déjà créé par Philippe (plus de lien par email) et ne crée aucun compte.
 - Les fichiers `.sql` et `.md` ne sont pas publiés sur le site.
 
 ## iCloud et rappels (menu « iCloud et rappels », ou bouton « relier iCloud » du calendrier)

@@ -1,5 +1,5 @@
 // Squelette de l'application : connexion, menu, navigation entre les pages, sauvegarde automatique
-import { h, toast } from './ui.js';
+import { h, toast, modal } from './ui.js';
 import * as store from './store.js';
 import { state } from './state.js';
 import { today, shortDate } from './dates.js';
@@ -122,6 +122,7 @@ function sideNav(current) {
             h('button', { type: 'button', class: 'btn wide', onclick: () => newProjectDialog() }, '+ nouveau projet'),
             saveIndicator(),
             h('button', { type: 'button', class: 'link plain small', onclick: () => connectionsDialog() }, 'iCloud et rappels'),
+            store.getMode() === 'cloud' ? h('button', { type: 'button', class: 'link plain small', onclick: () => passwordDialog() }, 'changer mon mot de passe') : null,
             h('button', { type: 'button', class: 'link plain small', onclick: logout }, store.getMode() === 'demo' ? 'quitter le mode démo' : 'se déconnecter')));
 }
 
@@ -156,6 +157,7 @@ function openMenu() {
             h('button', { type: 'button', class: 'btn wide', onclick: () => { close(); newProjectDialog(); } }, '+ nouveau projet'),
             saveIndicator(),
             h('button', { type: 'button', class: 'link plain small', onclick: () => { close(); connectionsDialog(); } }, 'iCloud et rappels'),
+            store.getMode() === 'cloud' ? h('button', { type: 'button', class: 'link plain small', onclick: () => { close(); passwordDialog(); } }, 'changer mon mot de passe') : null,
             h('button', { type: 'button', class: 'link plain small', onclick: () => { close(); logout(); } }, store.getMode() === 'demo' ? 'quitter le mode démo' : 'se déconnecter')));
     document.body.append(sheet);
 }
@@ -167,6 +169,42 @@ function saveIndicator() {
     set(store.saveState.status);
     store.saveState.listeners.add(set);
     return el;
+}
+
+// Changer le mot de passe : l'actuel, puis le nouveau deux fois. Les autres appareils restent connectés.
+function passwordDialog() {
+    return modal((box, close) => {
+        const field = (placeholder, autocomplete) => h('input', { class: 'field', type: 'password', placeholder, autocomplete, required: true, 'aria-label': placeholder });
+        const current = field('mot de passe actuel', 'current-password');
+        const next = field('nouveau mot de passe', 'new-password');
+        const again = field('nouveau mot de passe, encore', 'new-password');
+        const error = h('p', { class: 'login-error', role: 'alert' });
+        const submit = h('button', { type: 'submit', class: 'btn primary' }, 'enregistrer');
+        box.append(h('form', {
+            class: 'stack',
+            onsubmit: async (e) => {
+                e.preventDefault();
+                error.textContent = '';
+                if (next.value.length < 10) { error.textContent = 'au moins 10 caractères, s\'il te plaît.'; return; }
+                if (next.value !== again.value) { error.textContent = 'les deux nouveaux mots de passe ne sont pas identiques.'; return; }
+                if (next.value === current.value) { error.textContent = 'le nouveau mot de passe doit être différent de l\'actuel.'; return; }
+                submit.disabled = true;
+                try {
+                    await store.changePassword(current.value, next.value);
+                    close(true);
+                    toast('mot de passe changé');
+                } catch (err) {
+                    console.error(err);
+                    error.textContent = /invalid/i.test(err.message || '') ? 'mot de passe actuel incorrect.' : 'changement impossible pour le moment.';
+                    submit.disabled = false;
+                }
+            },
+        }, h('h2', null, 'changer mon mot de passe.'), current, next, again, error,
+            h('p', { class: 'small muted' }, 'Au moins 10 caractères. Tes autres appareils restent connectés.'),
+            h('div', { class: 'modal-actions' },
+                h('button', { type: 'button', class: 'btn ghost', onclick: () => close(null) }, 'annuler'),
+                submit)));
+    }, { label: 'changer mon mot de passe' });
 }
 
 async function logout() {

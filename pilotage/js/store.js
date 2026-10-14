@@ -172,6 +172,17 @@ export async function signIn(login, password) {
     return data.session;
 }
 
+// Nouveau mot de passe pour le compte connecté, après vérification du mot de passe actuel
+export async function changePassword(current, next) {
+    const { data } = await client.auth.getSession();
+    const email = data.session?.user?.email;
+    if (!email) throw new Error('not signed in');
+    const check = await client.auth.signInWithPassword({ email, password: current });
+    if (check.error) throw check.error;
+    const { error } = await client.auth.updateUser({ password: next });
+    if (error) throw error;
+}
+
 // Demande au navigateur de ne pas effacer la session et le cache : la connexion reste mémorisée sur l'appareil
 export function keepStorage() {
     try { navigator.storage?.persist?.(); } catch { /* navigateur sans cette option */ }

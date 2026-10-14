@@ -2,7 +2,9 @@
 -- pilotage. — connexion de Maryse par « utilisateur + mot de passe »
 -- À exécuter UNE FOIS dans Supabase : SQL Editor > New query > coller > Run
 --
--- Utilisateur : maryse      Mot de passe : 250566
+-- Utilisateur : maryse
+-- Mot de passe : à écrire dans « mot_de_passe » au moment de l'exécution, dans Supabase uniquement.
+-- Ne jamais l'enregistrer dans ce fichier : le dépôt est public.
 -- Ce script ne crée AUCUN compte : il donne un mot de passe au compte de Maryse déjà créé
 -- (au lieu du lien reçu par email) et lui associe le nom d'utilisateur « maryse ».
 -- =============================================================
@@ -18,9 +20,14 @@ DO $$
 DECLARE
     -- Si le script n'arrive pas à trouver le compte tout seul, écrire l'email de Maryse entre les apostrophes :
     email_maryse TEXT := '';
+    -- Le mot de passe choisi, à écrire ici uniquement dans Supabase (jamais dans le dépôt) :
+    mot_de_passe TEXT := '';
     uid UUID;
     nb INT;
 BEGIN
+    IF length(mot_de_passe) < 10 THEN
+        RAISE EXCEPTION 'Écrire un mot de passe d''au moins 10 caractères dans mot_de_passe, puis relancer.';
+    END IF;
     IF email_maryse <> '' THEN
         SELECT id INTO uid FROM auth.users WHERE lower(email) = lower(email_maryse);
     END IF;
@@ -33,11 +40,11 @@ BEGIN
         IF nb = 1 THEN SELECT id INTO uid FROM auth.users; END IF;
     END IF;
     IF uid IS NULL THEN
-        RAISE EXCEPTION 'Compte de Maryse introuvable : écrire son email dans email_maryse (ligne 20) puis relancer.';
+        RAISE EXCEPTION 'Compte de Maryse introuvable : écrire son email dans email_maryse (ligne 22) puis relancer.';
     END IF;
 
     UPDATE auth.users
-    SET encrypted_password = extensions.crypt('250566', extensions.gen_salt('bf')),
+    SET encrypted_password = extensions.crypt(mot_de_passe, extensions.gen_salt('bf')),
         email_confirmed_at = COALESCE(email_confirmed_at, now()),
         updated_at = now()
     WHERE id = uid;
