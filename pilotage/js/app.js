@@ -77,7 +77,7 @@ function renderLogin(message) {
                         submit.disabled = false;
                     }
                 },
-            }, user, password, submit, error, h('p', { class: 'small muted' }, 'Une seule fois par appareil : la connexion reste ensuite mémorisée.')),
+            }, user, password, submit, error, h('p', { class: 'small muted' }, 'Une seule fois par appareil : la connexion reste ensuite mémorisée. (test Maryse)')),
             h('button', { type: 'button', class: 'link plain', onclick: () => startApp(() => store.startDemo()) }, 'essayer en mode démo · les données restent sur cet appareil, rien n\'est envoyé en ligne'))));
     (lastUser ? password : user).focus();
 }
