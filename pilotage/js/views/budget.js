@@ -112,19 +112,35 @@ function settingsCard(b) {
         h('button', { type: 'button', class: 'btn self-start', onclick: () => debitDialog(null) }, '+ ajouter un prélèvement'));
 }
 
+// Jour ouvert dans « mon mois en un coup d'œil » (aujourd'hui par défaut)
+let selectedDay = null;
+
 function monthGlance(b) {
     const t = today();
     const first = fromKey(`${t.slice(0, 7)}-01`);
+    if (!selectedDay || selectedDay.slice(0, 7) !== t.slice(0, 7)) selectedDay = t;
     const lead = (first.getDay() + 6) % 7;
+    const detail = h('div', { class: 'mg-detail', 'aria-live': 'polite' }, dayDetail(b, selectedDay));
     const cells = Array.from({ length: lead }, () => h('span'));
+    const buttons = [];
     for (let i = 1; i <= daysInMonth(first); i++) {
         const key = toKey(new Date(first.getFullYear(), first.getMonth(), i));
         const isMonday = fromKey(key).getDay() === 1;
         const ds = debitsOn(key, b.debits);
-        cells.push(h('span', {
-            class: `mg-day${isMonday ? ' monday' : ''}${key === t ? ' today' : ''}`,
-            title: [isMonday ? `je me verse ${euros(mondayTransfer(b, key).total)}` : '', ...ds.map((d) => `${d.label} · ${euros(d.amount)}`)].filter(Boolean).join('\n') || null,
-        }, String(i), ds.length ? h('span', { class: 'mg-dot' }) : null));
+        const amount = ds.reduce((s, d) => s + toNumber(d.amount), 0);
+        const btn = h('button', {
+            type: 'button', class: `mg-cell${key === selectedDay ? ' selected' : ''}`, 'aria-pressed': String(key === selectedDay),
+            'aria-label': [longDate(key), isMonday ? 'jour du virement' : '', ds.length ? `prélèvements ${euros(amount)}` : ''].filter(Boolean).join(', '),
+            onclick: () => {
+                selectedDay = key;
+                buttons.forEach((x) => { const on = x === btn; x.classList.toggle('selected', on); x.setAttribute('aria-pressed', String(on)); });
+                detail.replaceChildren(dayDetail(budget(), key));
+            },
+        },
+        h('span', { class: `mg-day${isMonday ? ' monday' : ''}${key === t ? ' today' : ''}` }, String(i), ds.length ? h('span', { class: 'mg-dot' }) : null),
+        ds.length ? h('span', { class: 'mg-amount' }, euros(amount)) : null);
+        buttons.push(btn);
+        cells.push(btn);
     }
     const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
     return h('section', { class: 'card', 'aria-labelledby': 'b-mois' },
@@ -133,7 +149,34 @@ function monthGlance(b) {
         h('div', { class: 'legend' },
             h('span', null, h('span', { class: 'legend-dot monday' }), 'le lundi, je me verse'),
             h('span', null, h('span', { class: 'legend-dot debit' }), 'un prélèvement passe'),
-            h('span', null, h('span', { class: 'legend-dot today' }), 'aujourd\'hui')));
+            h('span', null, h('span', { class: 'legend-dot today' }), 'aujourd\'hui')),
+        h('p', { class: 'small muted' }, 'clique sur un jour pour voir ce qui passe.'),
+        detail);
+}
+
+// Le détail d'un jour : ce qui passe ce jour-là et, un lundi, le virement de la semaine qui commence
+function dayDetail(b, key) {
+    const d = fromKey(key);
+    const ds = debitsOn(key, b.debits);
+    const dayTotal = ds.reduce((s, x) => s + toNumber(x.amount), 0);
+    const monday = addDays(key, -((d.getDay() + 6) % 7));
+    const parts = [eyebrow(longDate(key))];
+    if (d.getDay() === 1) {
+        const r = mondayTransfer(b, key);
+        const sunday = fromKey(addDays(key, 6));
+        parts.push(h('div', { class: 'mg-transfer' },
+            h('span', null, `à me verser pour la semaine du ${d.getDate()} au ${sunday.getDate()}`),
+            h('strong', { class: 'mg-big' }, euros(r.gross)),
+            h('span', { class: 'small' }, `prélèvements ${euros(r.debits)} · ma vie ${euros(r.life)} · épargne ${euros(r.saving)}`),
+            r.weekDebits.length ? h('span', { class: 'small' }, r.weekDebits.map((x) => `${x.label} le ${fromKey(x.date).getDate()}`).join(', ')) : null));
+    }
+    parts.push(ds.length
+        ? h('div', { class: 'rows' }, ds.map((x) => h('button', { type: 'button', class: 'debit-row', onclick: () => debitDialog(x) },
+            h('span', { class: 'debit-label' }, x.label), h('span', { class: 'small muted' }, x.category), h('strong', null, euros(x.amount)))),
+        ds.length > 1 ? h('div', { class: 'debit-row mg-total' }, h('span', { class: 'debit-label' }, 'total du jour'), h('strong', null, euros(dayTotal))) : null)
+        : h('p', { class: 'empty' }, 'aucun prélèvement ce jour-là.'));
+    if (d.getDay() !== 1) parts.push(h('p', { class: 'small muted' }, `couvert par le virement du lundi ${fromKey(monday).getDate()}.`));
+    return h('div', { class: 'stack-sm' }, parts);
 }
 
 function ring(b) {

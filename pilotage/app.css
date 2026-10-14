@@ -572,6 +572,17 @@ textarea.field { padding: 16px 18px; line-height: 1.5; resize: vertical; }
 .mg-day.today, .legend-dot.today { box-shadow: inset 0 0 0 2px var(--texte); }
 .legend-dot.today { background: transparent; }
 .mg-dot { position: absolute; bottom: 3px; left: 50%; width: 7px; height: 7px; margin-left: -3.5px; border-radius: 999px; background: var(--or); }
+.mg-cell { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; padding: 0; border: none; background: transparent; color: inherit; font: inherit; cursor: pointer; }
+.mg-cell .mg-day { width: 100%; }
+.mg-cell:hover .mg-day:not(.monday) { background: var(--beige); }
+.mg-cell.selected .mg-day { box-shadow: 0 0 0 3px var(--or); }
+.mg-cell:focus-visible { outline: none; }
+.mg-cell:focus-visible .mg-day { box-shadow: 0 0 0 3px var(--texte); }
+.mg-amount { font-size: 10px; font-weight: 600; line-height: 1.1; color: var(--chocolat); white-space: nowrap; }
+.mg-detail { border-top: 1px solid var(--filet); padding-top: 14px; }
+.mg-transfer { display: flex; flex-direction: column; gap: 4px; padding: 14px 16px; border-radius: 14px; background: var(--cerise); color: #FFFFFF; }
+.mg-big { font-size: 34px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.1; }
+.mg-total { min-height: 40px; }
 .ring-wrap { display: flex; flex-wrap: wrap; gap: 24px; align-items: center; }
 .ring { position: relative; flex: none; width: 220px; height: 220px; }
 .ring svg { display: block; }
