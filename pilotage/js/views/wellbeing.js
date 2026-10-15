@@ -1,7 +1,7 @@
 // 07 · Bien-être : rempli chaque jour en moins d'une minute. Aucun score, aucune série ; le récap du mois donne des petits conseils doux.
 import { h, eyebrow, img, modal, confirmDialog, closeBtn, dropzone } from '../ui.js';
 import { get, create, update, deleteFile, uid } from '../store.js';
-import { today, addDays, fromKey, toKey, longDate, dayNum, fullDate } from '../dates.js';
+import { today, addDays, fromKey, toKey, longDate, dayNum, fullDate, shortDate } from '../dates.js';
 import { state } from '../state.js';
 
 export const MOODS = ['rayonnante', 'bien', 'calme', 'fatiguée', 'à plat'];
@@ -49,8 +49,22 @@ function addPhotos(key, refs) {
     setDay(key, { photos: [...getDay(key).photos, ...refs.map(({ ref }) => ({ id: uid(), ref }))] });
 }
 
+// Le jour rempli : aujourd'hui par défaut, ou un jour passé choisi avec les flèches (pour compléter la veille)
+function dayNav(t) {
+    const now = today();
+    const move = (n) => { const next = addDays(t, n); state.wellDay = next >= now ? null : next; state.rerender(); };
+    const label = t === now ? 'aujourd\'hui' : t === addDays(now, -1) ? 'hier' : shortDate(t);
+    return h('div', { class: 'section-head wrap' },
+        h('span', { class: 'arrows' },
+            h('button', { type: 'button', class: 'arrow-btn', 'aria-label': 'jour précédent', onclick: () => move(-1) }, '←'),
+            h('span', { class: 'eyebrow' }, `je remplis : ${label}`),
+            h('button', { type: 'button', class: 'arrow-btn', 'aria-label': 'jour suivant', disabled: t >= now, onclick: () => move(1) }, '→')),
+        t !== now ? h('button', { type: 'button', class: 'link plain small', onclick: () => { state.wellDay = null; state.rerender(); } }, 'revenir à aujourd\'hui') : null);
+}
+
 function today_() {
-    const t = today();
+    const t = state.wellDay && state.wellDay < today() ? state.wellDay : today();
+    const when = t === today() ? 'aujourd\'hui' : t === addDays(today(), -1) ? 'hier' : `le ${fromKey(t).getDate()}`;
     const d = getDay(t);
     const note = h('textarea', {
         id: 'w-note', class: 'field', rows: 3, placeholder: 'ce que je ressens, ce dont j\'ai besoin…',
@@ -66,19 +80,19 @@ function today_() {
             type: 'button', class: `glass${i < d.water ? ' full' : ''}`, 'aria-pressed': String(i < d.water), 'aria-label': `verre ${i + 1}`,
             onclick: () => setDay(t, { water: d.water === i + 1 ? i : i + 1 }),
         })));
-    return h('div', { class: 'split' },
+    return h('div', { class: 'stack' }, dayNav(t), h('div', { class: 'split' },
         h('section', { class: 'card col-1', 'aria-labelledby': 'w-mood' },
-            h('h2', { id: 'w-mood' }, 'comment je me sens aujourd\'hui.'),
+            h('h2', { id: 'w-mood' }, `comment je me sens ${when}.`),
             choiceChips(MOODS, (m) => d.mood === m, (m) => setDay(t, { mood: d.mood === m ? null : m }), 'mon humeur du jour'),
             h('label', { class: 'field-label', for: 'w-note' }, 'un mot sur ma journée'), note),
         h('section', { class: 'card col-1', 'aria-labelledby': 'w-jour' },
-            h('h2', { id: 'w-jour' }, 'mon corps aujourd\'hui.'),
+            h('h2', { id: 'w-jour' }, `mon corps ${when}.`),
             h('div', { class: 'stack-sm' }, eyebrow('01 · j\'ai bougé'),
                 choiceChips(MOVES, (m) => d.moves.includes(m), (m) => setDay(t, { moves: toggleIn(d.moves, m) }), 'mouvement du jour', false)),
             h('div', { class: 'stack-sm' }, h('div', { class: 'section-head' }, eyebrow('02 · mon eau'), eyebrow(`${d.water} verre${d.water > 1 ? 's' : ''} sur ${GLASSES}`)), glasses),
             h('div', { class: 'stack-sm' }, eyebrow('03 · un moment pour moi'),
                 choiceChips(RITUALS, (r) => d.rituals.includes(r), (r) => setDay(t, { rituals: toggleIn(d.rituals, r) }), 'rituel du jour', false)),
-            h('label', { class: 'stack-sm', for: 'w-sleep' }, eyebrow('04 · ma nuit, en heures'), sleep)));
+            h('label', { class: 'stack-sm', for: 'w-sleep' }, eyebrow('04 · ma nuit, en heures'), sleep))));
 }
 
 function week() {

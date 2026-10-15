@@ -415,6 +415,7 @@ textarea.field { padding: 16px 18px; line-height: 1.5; resize: vertical; }
     width: 40px; height: 40px; border-radius: 999px; border: 1px solid var(--filet); background: transparent; font-size: 18px; flex: none;
 }
 .arrow-btn:hover { border-color: var(--texte); }
+.arrow-btn:disabled { opacity: 0.35; cursor: default; }
 .section-head.wrap { flex-wrap: wrap; }
 .chip.on.cherry { background: var(--cerise); border-color: var(--cerise); color: #FFFFFF; }
 .dropzone.compact { min-height: 52px; padding: 10px 16px; }
