@@ -12,6 +12,8 @@ import { renderBudget } from './views/budget.js';
 import { renderNewYork } from './views/newyork.js';
 import { renderWellbeing } from './views/wellbeing.js';
 import { renderBucket } from './views/bucket.js';
+import { renderMoi } from './views/moi.js';
+import { renderTete } from './views/tete.js';
 import { connectionsDialog } from './views/connexions.js';
 import * as icloud from './icloud.js';
 
@@ -23,6 +25,8 @@ const SECTIONS = [
     { id: 'budget', label: 'budget perso' },
     { id: 'new-york', label: 'new york life' },
     { id: 'bien-etre', label: 'bien-être' },
+    { id: 'moi', label: 'moi, en dehors du travail' },
+    { id: 'tete', label: 'ce qui tourne dans ma tête' },
     { id: 'bucket', label: 'bucket list' },
 ];
 const MOBILE_TABS = ['accueil', 'projets', 'calendrier', 'bien-etre'];
@@ -35,6 +39,8 @@ const PAGES = {
     'new-york': renderNewYork,
     'bien-etre': renderWellbeing,
     bucket: renderBucket,
+    moi: renderMoi,
+    tete: renderTete,
 };
 
 const root = document.getElementById('app');
