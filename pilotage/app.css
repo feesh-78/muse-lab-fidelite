@@ -823,6 +823,12 @@ textarea.field { padding: 16px 18px; line-height: 1.5; resize: vertical; }
 .thought-text { margin: 0; white-space: pre-wrap; font-size: 16px; line-height: 1.5; overflow-wrap: anywhere; }
 .thought-actions { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; }
 .thought-links { display: flex; flex-direction: column; gap: 4px; }
+.thought-audio { width: 100%; max-width: 420px; height: 40px; }
+.rec-box { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; }
+.rec-box.recording { padding: 12px 16px; border-radius: 14px; background: var(--beige); font-size: 15px; }
+.rec-dot { width: 12px; height: 12px; border-radius: 999px; background: var(--cerise); animation: rec-pulse 1.2s ease-in-out infinite; }
+@keyframes rec-pulse { 50% { opacity: 0.3; } }
+@media (prefers-reduced-motion: reduce) { .rec-dot { animation: none; } }
 .chip.small { padding: 4px 12px; font-size: 12px; min-height: 0; }
 .chip.static { cursor: default; }
 @media (max-width: 820px) {
