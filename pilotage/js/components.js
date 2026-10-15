@@ -68,17 +68,28 @@ export function palette(ownerId, { field = 'palette', compact = false } = {}) {
 }
 
 // ---------- Ligne de tâche ----------
+function fitHeight(el) {
+    if (!el.isConnected) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+}
+// Les intitulés se recalculent quand la largeur change (rotation du téléphone, fenêtre redimensionnée)
+window.addEventListener('resize', () => document.querySelectorAll('textarea.task-title').forEach(fitHeight));
+
 export function taskRow(task, { index, showBrand = true, showNumber = true, sortableRow = true } = {}) {
     const b = taskBrand(task);
     const check = h('input', {
         type: 'checkbox', checked: task.done, 'aria-label': `terminer : ${task.title}`,
         onchange: (e) => update(task.id, { done: e.target.checked, doneOn: e.target.checked ? today() : null }),
     });
-    const title = h('input', {
-        class: 'task-title', value: task.title, 'aria-label': 'intitulé de la tâche',
-        oninput: (e) => update(task.id, { title: e.target.value }, { quiet: true }),
-        onkeydown: (e) => { if (e.key === 'Enter') e.target.blur(); },
+    // Zone de texte d'une ligne qui s'agrandit : les intitulés longs passent à la ligne au lieu d'être coupés
+    const title = h('textarea', {
+        class: 'task-title', rows: 1, 'aria-label': 'intitulé de la tâche',
+        oninput: (e) => { e.target.value = e.target.value.replace(/\n/g, ' '); fitHeight(e.target); update(task.id, { title: e.target.value }, { quiet: true }); },
+        onkeydown: (e) => { if (e.key === 'Enter') { e.preventDefault(); e.target.blur(); } },
     });
+    title.value = task.title;
+    requestAnimationFrame(() => fitHeight(title));
     return h('div', { class: `task-row${task.done ? ' done' : ''}`, 'data-sort-id': task.id },
         sortableRow ? grip('déplacer la tâche') : null,
         showNumber ? h('span', { class: 'num' }, num(index)) : null,
