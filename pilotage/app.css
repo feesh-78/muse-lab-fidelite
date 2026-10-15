@@ -835,3 +835,33 @@ textarea.field { padding: 16px 18px; line-height: 1.5; resize: vertical; }
     .moi-grid { grid-template-columns: 1fr; }
     .moi-hero select.field.pill { flex: 1 1 100%; }
 }
+
+/* ---------- Calendrier : semaine en grille horaire ---------- */
+.tg-wrap { padding: 0; overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+.tg-grid { min-width: 720px; }
+.tg-row { display: grid; grid-template-columns: 48px repeat(7, minmax(0, 1fr)); }
+.tg-headrow { background: var(--creme); border-bottom: 1px solid var(--filet); }
+.tg-head { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 8px; border: none; background: transparent; text-align: left; cursor: pointer; }
+.tg-num { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.tg-head.today .tg-num { color: var(--cerise); }
+.tg-alldayrow { border-bottom: 1px solid var(--filet); }
+.tg-allday { display: flex; flex-direction: column; gap: 4px; padding: 6px 4px; min-height: 34px; border-left: 1px solid var(--filet); min-width: 0; }
+.tg-allday .cal-chip { white-space: normal; }
+.tg-allday.today, .tg-col.today { background: #F7EDDF; }
+.tg-hour { display: block; height: 48px; padding: 2px 6px 0 0; text-align: right; font-size: 11px; color: var(--texte-2); }
+.tg-allday-label { height: auto; padding-top: 10px; line-height: 1.2; }
+.tg-col {
+    position: relative; border-left: 1px solid var(--filet); cursor: copy; min-width: 0;
+    background-image: repeating-linear-gradient(to bottom, transparent 0, transparent 47px, var(--filet) 47px, var(--filet) 48px);
+}
+.tg-event {
+    position: absolute; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: 1px; overflow: hidden;
+    padding: 3px 6px; border: none; border-radius: 8px; background: var(--beige); color: var(--texte);
+    font-size: 12px; line-height: 1.25; text-align: left; cursor: pointer; box-shadow: 0 0 0 1px rgba(251, 244, 234, 0.9);
+}
+.tg-event .chip-time { margin: 0; font-size: 11px; }
+.tg-event.post { background: var(--creme); border: 1px dashed var(--texte); }
+.tg-now { position: absolute; left: 0; right: 0; height: 2px; background: var(--cerise); z-index: 2; pointer-events: none; }
+.tg-now::before { content: ''; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 999px; background: var(--cerise); }
+.week-side .cal-aside { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; align-items: start; }
+.tg-corner, .tg-allday-label, .tg-hours { position: sticky; left: 0; z-index: 3; background: var(--creme); }

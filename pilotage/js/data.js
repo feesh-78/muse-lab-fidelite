@@ -253,7 +253,7 @@ export function calendarItems(from, to, { hidden = [], loadICloud = true } = {})
     }
     // Rendez-vous des agendas iCloud reliés (lus en arrière-plan, la page se redessine à leur arrivée)
     for (const e of eventsBetween(from, to, { load: loadICloud })) {
-        if (show(e.calendar)) out.push({ date: e.date, time: e.time || '', title: e.title, type: 'event', cal: calendarOf(e.calendar), big: !!e.big, ref: e });
+        if (show(e.calendar)) out.push({ date: e.date, time: e.time || '', end: e.endTime || '', title: e.title, type: 'event', cal: calendarOf(e.calendar), big: !!e.big, ref: e });
     }
     for (const p of all('project', (x) => x.status !== 'archive' && inRange(x.keyDate))) {
         const calId = brandCalendar(p.brand);

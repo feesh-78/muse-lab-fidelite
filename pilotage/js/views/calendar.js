@@ -1,4 +1,4 @@
-// 03 · Calendrier : vue mois et vue semaine, 4 calendriers + contenus à poster + deadlines de to-do
+// 03 · Calendrier : vue semaine (par défaut) et vue mois, 4 calendriers + contenus à poster + deadlines de to-do
 import { h, eyebrow, modal, confirmDialog, toast } from '../ui.js';
 import { create, update, remove, singleton, get } from '../store.js';
 import { CALENDARS, LAYERS, calendarOf, calendarItems, nextBigEvent, weekStart } from '../data.js';
@@ -16,11 +16,11 @@ const hidden = () => prefs().hiddenCalendars || [];
 
 // ---------- Fenêtres d'ajout et de modification ----------
 // Un rendez-vous vit dans l'outil, ou dans l'agenda iCloud quand son calendrier y est relié
-export function eventDialog(event, date = today()) {
+export function eventDialog(event, date = today(), atTime = '') {
     const fromICloud = event?.source === 'icloud';
     const e = event
         ? { ...event, repeat: fromICloud ? (event.weekly ? 'weekly' : null) : event.repeat }
-        : { title: '', date, time: '', calendar: 'perso', repeat: null, big: false };
+        : { title: '', date, time: atTime, calendar: 'perso', repeat: null, big: false };
     return modal((box, close) => {
         const title = h('input', { class: 'field', placeholder: 'intitulé', value: e.title, required: true, 'aria-label': 'intitulé' });
         const day = h('input', { class: 'field', type: 'date', value: e.date, required: true, 'aria-label': 'date' });
@@ -179,20 +179,88 @@ function monthView(anchor) {
         h('div', { class: 'cal-grid' }, cells));
 }
 
+// Vue semaine en grille horaire, comme un agenda : une colonne par jour, une ligne par heure.
+// En haut, « sans heure » : deadlines, dates clés et contenus sans horaire. Un clic sur un créneau vide ajoute une date à cette heure.
+const HOUR_PX = 48;
+const toMin = (t) => { if (!t || !/^\d{1,2}:\d{2}/.test(t)) return null; const [hh, mm] = t.split(':').map(Number); return hh * 60 + mm; };
+
+// Trait rouge de l'heure actuelle, seulement s'il tombe dans les heures affichées
+function nowLine(first, last) {
+    const now = new Date();
+    const min = now.getHours() * 60 + now.getMinutes();
+    if (min < first * 60 || min >= last * 60) return null;
+    return h('span', { class: 'tg-now', style: { top: `${((min - first * 60) / 60) * HOUR_PX}px` } });
+}
+
+function placeInLanes(list) {
+    // Rendez-vous qui se chevauchent : côte à côte, chacun dans sa voie
+    const lanes = [];
+    list.forEach((it) => {
+        let lane = lanes.findIndex((endAt) => endAt <= it.start);
+        if (lane === -1) { lane = lanes.length; lanes.push(0); }
+        lanes[lane] = it.stop;
+        it.lane = lane;
+    });
+    list.forEach((it) => { it.lanes = lanes.length; });
+}
+
 function weekView(anchor) {
     const start = weekStart(anchor);
     const items = calendarItems(start, addDays(start, 6), { hidden: hidden() });
     const byDay = groupByDay(items);
     const t = today();
-    const days = [];
-    for (let i = 0; i < 7; i++) {
-        const d = addDays(start, i);
-        days.push(h('div', { class: `week-col${d === t ? ' today' : ''}` },
-            h('button', { type: 'button', class: 'week-col-head', onclick: () => eventDialog(null, d), title: 'ajouter une date ce jour-là' },
-                h('span', { class: 'eyebrow' }, JOURS[i]), h('span', { class: 'week-col-num' }, String(fromKey(d).getDate()))),
-            h('div', { class: 'week-col-items' }, (byDay[d] || []).map((it) => itemChip(it, { withTime: true })))));
-    }
-    return h('div', { class: 'card week-grid' }, days);
+    const days = Array.from({ length: 7 }, (_, i) => addDays(start, i));
+    // Heures affichées : 7h à 22h, élargies si un rendez-vous tombe plus tôt ou plus tard
+    const times = items.map((it) => toMin(it.time)).filter((m) => m !== null);
+    const first = Math.min(7, ...times.map((m) => Math.floor(m / 60)));
+    const last = Math.max(22, ...times.map((m) => Math.ceil(m / 60) + 1));
+    const hours = Array.from({ length: last - first }, (_, i) => first + i);
+    const height = hours.length * HOUR_PX;
+
+    const head = [h('span', { class: 'tg-corner' })];
+    const allDay = [h('span', { class: 'tg-hour tg-allday-label' }, 'sans heure')];
+    const cols = [h('div', { class: 'tg-hours', style: { height: `${height}px` } }, hours.map((hr) => h('span', { class: 'tg-hour' }, `${hr}h`)))];
+    days.forEach((d, i) => {
+        const list = byDay[d] || [];
+        head.push(h('button', { type: 'button', class: `tg-head${d === t ? ' today' : ''}`, onclick: () => eventDialog(null, d), title: 'ajouter une date ce jour-là' },
+            h('span', { class: 'eyebrow' }, JOURS[i]), h('span', { class: 'tg-num' }, String(fromKey(d).getDate()))));
+        allDay.push(h('div', { class: `tg-allday${d === t ? ' today' : ''}` }, list.filter((it) => toMin(it.time) === null).map((it) => itemChip(it, { compact: true }))));
+        const timed = list.filter((it) => toMin(it.time) !== null).map((it) => {
+            const s0 = toMin(it.time);
+            const e0 = toMin(it.end);
+            return { it, start: s0, stop: e0 && e0 > s0 ? e0 : s0 + 60 };
+        }).sort((a, b) => a.start - b.start);
+        placeInLanes(timed);
+        const col = h('div', {
+            class: `tg-col${d === t ? ' today' : ''}`, style: { height: `${height}px` },
+            onclick: (e) => {
+                if (e.target !== col) return;
+                const hr = first + Math.floor(e.offsetY / HOUR_PX);
+                eventDialog(null, d, `${String(hr).padStart(2, '0')}:00`);
+            },
+        }, timed.map(({ it, start: s0, stop, lane, lanes }) => {
+            const style = {
+                top: `${((s0 - first * 60) / 60) * HOUR_PX}px`, height: `${Math.max(22, ((stop - s0) / 60) * HOUR_PX - 2)}px`,
+                left: `${(lane / lanes) * 100}%`, width: `calc(${100 / lanes}% - 3px)`,
+                ...(it.cal ? { background: it.cal.bg, color: it.cal.fg } : {}),
+            };
+            return h('button', { type: 'button', class: `tg-event ${it.type}`, style, title: `${it.time} · ${it.title}`, onclick: (e) => { e.stopPropagation(); openItem(it); } },
+                h('span', { class: 'chip-time' }, it.time), h('span', null, it.short || it.title));
+        }),
+        d === t ? nowLine(first, last) : null);
+        cols.push(col);
+    });
+    const grid = h('div', { class: 'tg-grid' },
+        h('div', { class: 'tg-row tg-headrow' }, head),
+        h('div', { class: 'tg-row tg-alldayrow' }, allDay),
+        h('div', { class: 'tg-row tg-body' }, cols));
+    const wrap = h('div', { class: 'card tg-wrap' }, grid);
+    // Sur téléphone, la grille défile de côté : on démarre sur aujourd'hui
+    if (state.mobile) requestAnimationFrame(() => {
+        const idx = days.indexOf(t);
+        if (idx > 0) wrap.scrollLeft = Math.max(0, idx * (grid.scrollWidth - 44) / 7 - 20);
+    });
+    return wrap;
 }
 
 function dayList(d) {
@@ -226,7 +294,8 @@ function groupByDay(items) {
 }
 
 export function renderCalendar() {
-    const view = state.calView || 'mois';
+    // Vue à la semaine par défaut ; le choix mois / semaine est gardé dans le profil (même vue sur tous les appareils)
+    const view = state.calView || prefs().calView || 'semaine';
     const anchor = state.calDate || today();
     const d = fromKey(anchor);
     const move = (n) => {
@@ -238,7 +307,7 @@ export function renderCalendar() {
     const heading = view === 'mois'
         ? `${MOIS[d.getMonth()]} ${d.getFullYear()}.`
         : `semaine du ${dayNum(ws).split(' ')[1]} au ${shortDate(addDays(ws, 6)).replace(/^\S+ /, '')}.`;
-    const chip = (id) => h('button', { type: 'button', class: `chip${view === id ? ' on' : ''}`, 'aria-pressed': String(view === id), onclick: () => { state.calView = id; state.rerender(); } }, id);
+    const chip = (id) => h('button', { type: 'button', class: `chip${view === id ? ' on' : ''}`, 'aria-pressed': String(view === id), onclick: () => { state.calView = id; update('profile', { calView: id }); } }, id);
     if (state.mobile && !state.calSelected) state.calSelected = today();
     return h('div', { class: 'page calendar' },
         h('header', { class: 'page-head' },
@@ -248,12 +317,15 @@ export function renderCalendar() {
                     h('h1', { class: 'title' }, heading),
                     h('button', { type: 'button', class: 'arrow-btn', 'aria-label': 'suivant', onclick: () => move(1) }, '→'))),
             h('div', { class: 'chips' },
-                chip('mois'), chip('semaine'),
+                chip('semaine'), chip('mois'),
                 h('button', { type: 'button', class: 'chip', onclick: () => { state.calDate = today(); state.calSelected = today(); state.rerender(); } }, 'aujourd\'hui'),
                 h('button', { type: 'button', class: `chip${isConnected() ? ' on' : ''}`, onclick: () => connectionsDialog() }, isConnected() ? 'iCloud relié' : 'relier iCloud'),
                 h('button', { type: 'button', class: 'btn primary', onclick: () => eventDialog(null, state.calSelected || today()) }, '+ ajouter une date'))),
         toggles(),
-        h('div', { class: 'split cal-split' },
-            h('div', { class: 'col-3 stack' }, view === 'mois' ? monthView(anchor) : weekView(anchor), state.mobile && view === 'mois' ? dayList(state.calSelected) : null),
-            h('div', { class: 'col-2 cal-side' }, upcoming())));
+        // La semaine prend toute la largeur (« à venir » passe dessous) ; le mois garde sa colonne à côté
+        view === 'semaine'
+            ? h('div', { class: 'stack' }, weekView(anchor), h('div', { class: 'cal-side week-side' }, upcoming()))
+            : h('div', { class: 'split cal-split' },
+                h('div', { class: 'col-3 stack' }, monthView(anchor), state.mobile ? dayList(state.calSelected) : null),
+                h('div', { class: 'col-2 cal-side' }, upcoming())));
 }
