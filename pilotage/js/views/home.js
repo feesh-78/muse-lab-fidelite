@@ -49,6 +49,20 @@ function photo(p) {
     return el;
 }
 
+// Mes rendez-vous du jour, à leur heure, juste au-dessus de la to-do
+function todayAgenda() {
+    const t = today();
+    const list = calendarItems(t, t).filter((it) => (it.type === 'event' || it.type === 'ny') && matches(it.ref.calendar || 'perso'));
+    return h('section', { class: 'card', 'aria-labelledby': 't-rdv' },
+        sectionHead('mes rdv.', eyebrow(`aujourd'hui · ${list.length}`), { id: 't-rdv' }),
+        list.length
+            ? h('div', { class: 'rows' }, list.map((it) => h('button', { type: 'button', class: 'week-row', onclick: () => openItem(it) },
+                h('span', { class: 'week-day' }, it.time ? it.time.replace(':', 'h') : 'journée'),
+                h('span', { class: 'rdv-line' }, it.cal ? h('span', { class: 'cal-swatch', style: { background: it.cal.bg } }) : null, it.title))))
+            : h('p', { class: 'empty' }, 'aucun rendez-vous aujourd\'hui.'),
+        h('a', { href: '#/calendrier', class: 'link' }, 'voir ma semaine'));
+}
+
 function todo() {
     const tasks = todayTasks().filter((t) => matches(taskBrand(t).id));
     const done = tasks.filter((t) => t.done).length;
@@ -137,7 +151,7 @@ export function renderHome() {
                     brandFilter()),
                 nyCard({ small: state.mobile }))),
         h('div', { class: 'split' },
-            h('div', { class: 'col-3' }, todo()),
+            h('div', { class: 'col-3 stack' }, todayAgenda(), todo()),
             h('div', { class: 'col-2 stack' }, week(), toPost())),
         mood,
         projectCards(),

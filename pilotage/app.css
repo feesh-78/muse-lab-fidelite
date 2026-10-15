@@ -865,3 +865,5 @@ textarea.field { padding: 16px 18px; line-height: 1.5; resize: vertical; }
 .tg-now::before { content: ''; position: absolute; left: -4px; top: -3px; width: 8px; height: 8px; border-radius: 999px; background: var(--cerise); }
 .week-side .cal-aside { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; align-items: start; }
 .tg-corner, .tg-allday-label, .tg-hours { position: sticky; left: 0; z-index: 3; background: var(--creme); }
+.rdv-line { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.rdv-line .cal-swatch { flex: none; }
