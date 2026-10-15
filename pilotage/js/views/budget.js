@@ -8,9 +8,37 @@ const CATEGORIES = ['logement', 'abonnements', 'assurances', 'transport', 'créd
 const RING_COLORS = ['#7A1014', '#D9B45A', '#5A3418', '#D9A078', '#7A5A40', '#2A160C', '#DCC9B0'];
 const WEEKS_PER_MONTH = 52 / 12;
 
-export const budget = () => singleton('budget', { lifePerWeek: 0, savingPerWeek: 0, accounts: [], debits: [], goals: [] });
+export const budget = () => singleton('budget', { lifePerWeek: 0, savingPerWeek: 0, accounts: [], debits: [], goals: [], paid: {} });
 const save = (patch) => update('budget', patch);
 const daysInMonth = (d) => new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+
+// « Payé » : coché pour un passage précis (la date du jour où il tombe), par exemple « 2026-10-25:id » ou « 2026-10-19:virement »
+const paidKey = (dateKey, what) => `${dateKey}:${what}`;
+const isPaid = (b, dateKey, what) => !!(b.paid && b.paid[paidKey(dateKey, what)]);
+function setPaid(dateKey, what, on) {
+    const paid = { ...(budget().paid || {}) };
+    if (on) paid[paidKey(dateKey, what)] = true; else delete paid[paidKey(dateKey, what)];
+    save({ paid });
+}
+function payCheck(b, dateKey, what, label) {
+    return h('input', {
+        type: 'checkbox', class: 'pay-check', checked: isPaid(b, dateKey, what), 'aria-label': `${label} : payé`,
+        onchange: (e) => setPaid(dateKey, what, e.target.checked),
+    });
+}
+// Le jour où un prélèvement tombe dans un mois donné (un « 31 » passe le dernier jour des mois courts)
+const occurrence = (debit, monthKey) => {
+    const first = fromKey(`${monthKey}-01`);
+    return toKey(new Date(first.getFullYear(), first.getMonth(), Math.min(Number(debit.day) || 1, daysInMonth(first))));
+};
+function debitLine(b, x, dateKey, { showDay = false } = {}) {
+    const paid = isPaid(b, dateKey, x.id);
+    return h('div', { class: `debit-line${paid ? ' paid' : ''}` },
+        payCheck(b, dateKey, x.id, x.label),
+        h('button', { type: 'button', class: 'debit-row', onclick: () => debitDialog(x) },
+            showDay ? h('span', { class: 'debit-day' }, `le ${fromKey(dateKey).getDate()}`) : null,
+            h('span', { class: 'debit-label' }, x.label), h('span', { class: 'small muted' }, paid ? 'payé' : x.category), h('strong', null, euros(x.amount))));
+}
 
 // Le prélèvement tombe-t-il ce jour-là ? (un « 31 » passe le dernier jour des mois courts)
 function debitsOn(key, debits) {
@@ -99,6 +127,17 @@ function transferCard(b) {
             h('span', { class: 'light' }, `moins ce qui est déjà sur ${r.main ? r.main.name : 'mon compte'} · `, h('strong', null, euros(r.balance)))));
 }
 
+// Ce mois-ci : ce qui est déjà payé et ce qui reste à passer (à cocher dans la liste)
+function paidSummary(b) {
+    const month = today().slice(0, 7);
+    const MOIS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+    const total = b.debits.reduce((s, d) => s + toNumber(d.amount), 0);
+    const done = b.debits.filter((d) => isPaid(b, occurrence(d, month), d.id)).reduce((s, d) => s + toNumber(d.amount), 0);
+    return h('div', { class: 'paid-summary' },
+        h('span', { class: 'progress' }, h('span', { style: { width: `${total ? Math.round((done / total) * 100) : 0}%` } })),
+        h('span', { class: 'small' }, `${MOIS[fromKey(`${month}-01`).getMonth()]} · `, h('strong', null, `${euros(done)} payés`), ` · reste ${euros(total - done)} · coche ce qui est passé`));
+}
+
 function settingsCard(b) {
     return h('section', { class: 'card', 'aria-labelledby': 'b-regl' },
         h('h2', { id: 'b-regl', class: 'h-small' }, 'je saisis une fois.'),
@@ -106,8 +145,8 @@ function settingsCard(b) {
             h('label', { class: 'big-input' }, eyebrow('ma vie par semaine'), h('span', { class: 'money' }, moneyInput(b.lifePerWeek, (v) => save({ lifePerWeek: v }), { label: 'budget de vie par semaine' }), '€')),
             h('label', { class: 'big-input' }, eyebrow('mon épargne par semaine'), h('span', { class: 'money' }, moneyInput(b.savingPerWeek, (v) => save({ savingPerWeek: v }), { label: 'épargne par semaine' }), '€'))),
         h('div', { class: 'section-head' }, eyebrow('mes prélèvements'), eyebrow(`${euros(b.debits.reduce((s, d) => s + toNumber(d.amount), 0))} / mois`)),
-        b.debits.length ? h('div', { class: 'rows' }, [...b.debits].sort((x, y) => x.day - y.day).map((d) => h('button', { type: 'button', class: 'debit-row', onclick: () => debitDialog(d) },
-            h('span', { class: 'debit-day' }, `le ${d.day}`), h('span', { class: 'debit-label' }, d.label), h('span', { class: 'small muted' }, d.category), h('strong', null, euros(d.amount)))))
+        b.debits.length ? paidSummary(b) : null,
+        b.debits.length ? h('div', { class: 'rows' }, [...b.debits].sort((x, y) => x.day - y.day).map((d) => debitLine(b, d, occurrence(d, today().slice(0, 7)), { showDay: true })))
             : h('p', { class: 'empty' }, 'aucun prélèvement saisi.'),
         h('button', { type: 'button', class: 'btn self-start', onclick: () => debitDialog(null) }, '+ ajouter un prélèvement'));
 }
@@ -137,7 +176,8 @@ function monthGlance(b) {
                 detail.replaceChildren(dayDetail(budget(), key));
             },
         },
-        h('span', { class: `mg-day${isMonday ? ' monday' : ''}${key === t ? ' today' : ''}` }, String(i), ds.length ? h('span', { class: 'mg-dot' }) : null),
+        h('span', { class: `mg-day${isMonday ? ' monday' : ''}${key === t ? ' today' : ''}` }, String(i),
+            ds.length ? h('span', { class: `mg-dot${ds.every((x) => isPaid(b, key, x.id)) ? ' paid' : ''}` }) : null),
         ds.length ? h('span', { class: 'mg-amount' }, euros(amount)) : null);
         buttons.push(btn);
         cells.push(btn);
@@ -149,6 +189,7 @@ function monthGlance(b) {
         h('div', { class: 'legend' },
             h('span', null, h('span', { class: 'legend-dot monday' }), 'le lundi, je me verse'),
             h('span', null, h('span', { class: 'legend-dot debit' }), 'un prélèvement passe'),
+            h('span', null, h('span', { class: 'legend-dot paid' }), 'payé'),
             h('span', null, h('span', { class: 'legend-dot today' }), 'aujourd\'hui')),
         h('p', { class: 'small muted' }, 'clique sur un jour pour voir ce qui passe.'),
         detail);
@@ -168,11 +209,11 @@ function dayDetail(b, key) {
             h('span', null, `à me verser pour la semaine du ${d.getDate()} au ${sunday.getDate()}`),
             h('strong', { class: 'mg-big' }, euros(r.gross)),
             h('span', { class: 'small' }, `prélèvements ${euros(r.debits)} · ma vie ${euros(r.life)} · épargne ${euros(r.saving)}`),
-            r.weekDebits.length ? h('span', { class: 'small' }, r.weekDebits.map((x) => `${x.label} le ${fromKey(x.date).getDate()}`).join(', ')) : null));
+            r.weekDebits.length ? h('span', { class: 'small' }, r.weekDebits.map((x) => `${x.label} le ${fromKey(x.date).getDate()}`).join(', ')) : null,
+            h('label', { class: 'check-line small' }, payCheck(b, key, 'virement', 'le virement de la semaine'), 'virement fait')));
     }
     parts.push(ds.length
-        ? h('div', { class: 'rows' }, ds.map((x) => h('button', { type: 'button', class: 'debit-row', onclick: () => debitDialog(x) },
-            h('span', { class: 'debit-label' }, x.label), h('span', { class: 'small muted' }, x.category), h('strong', null, euros(x.amount)))),
+        ? h('div', { class: 'rows' }, ds.map((x) => debitLine(b, x, key)),
         ds.length > 1 ? h('div', { class: 'debit-row mg-total' }, h('span', { class: 'debit-label' }, 'total du jour'), h('strong', null, euros(dayTotal))) : null)
         : h('p', { class: 'empty' }, 'aucun prélèvement ce jour-là.'));
     if (d.getDay() !== 1) parts.push(h('p', { class: 'small muted' }, `couvert par le virement du lundi ${fromKey(monday).getDate()}.`));
