@@ -55,3 +55,67 @@ Bouton : Réserver
 - Samedi 10 octobre 2026, 19h–20h · Boulogne (92)
 - Mis en avant sur le planning 92 (section « nouveaux cours »), distinct du workshop du dimanche 18 octobre.
 - Pas de campagne demandée pour ce cours.
+
+---
+
+## 5. Urban Session (événement, DIMANCHE 25 octobre)
+
+- Dimanche 25 octobre 2026, 10h–16h · The Muse Lab Montigny-le-Bretonneux (78), 2 avenue des Bosquets · tous niveaux · 10 places
+- Programme : 10h15 Musicalité · 11h Commercial · 12h Repas · 13h Reggaeton Girly · 14h Afro Dancehall · 15h Massage, échange, goûter
+- Lien : `https://themuselab.fr/urban-session/?utm_source=meta&utm_medium=paid&utm_campaign=urban-session-25-10`
+- Visuels : `urban-session_feed_1080x1350.jpg` (point en trop après « transmission » retiré) · `urban-session-programme_feed_1080x1350.jpg`
+- À vérifier avant diffusion : « Parking gratuit sur place » (texte 4).
+
+Titres (40 caractères max) :
+- 🌹 Urban Session, dimanche 25 octobre
+- 🔥 Une journée de danse urbaine au Lab
+- 🌹 Commercial, Reggaeton, Afro Dancehall
+- 🔥 Dernières places pour l'Urban Session
+- 🌹 Danse urbaine tous niveaux, 10h à 16h
+
+Descriptions (30 caractères max) :
+- 🌹 Dimanche 25 oct, 10h à 16h
+- 🌹 Tous niveaux bienvenus
+- 🌹 Studio 100% féminin
+- 🌹 Massage et goûter inclus
+- 🌹 Places limitées, réserve vite (31 caractères avec l'emoji : retirer l'emoji si Meta refuse)
+
+Texte principal 1 :
+Urban Session au Muse Lab Montigny 🔥
+Dimanche 25 octobre, de 10h à 16h
+Une journée entière de danse urbaine, entre femmes. Tous niveaux.
+Musicalité, Commercial, Reggaeton Girly, Afro Dancehall, puis massage, échange et goûter pour clôturer la journée.
+Dernières places, réserve la tienne 🌹
+
+Texte principal 2 :
+Et si tu offrais à ton dimanche une vraie journée pour toi ?
+L'Urban Session, c'est 4 temps de danse pour travailler ta précision, ton énergie et ton attitude, puis un vrai moment de récupération avec massage et goûter.
+Tous niveaux, débutantes bienvenues.
+Dimanche 25 octobre, 10h à 16h
+Muse Lab Montigny-le-Bretonneux
+Réserve ta place 🔥
+
+Texte principal 3 :
+Au programme de l'Urban Session 🔥
+10h15 Musicalité
+11h Commercial
+12h Pause repas partagée
+13h Reggaeton Girly
+14h Afro Dancehall
+15h Massage, échange et goûter
+Dimanche 25 octobre au Muse Lab Montigny. Tous niveaux.
+Places très limitées, réserve maintenant 🌹
+
+Texte principal 4 :
+Tu aimes les sons urbains, le groove, l'attitude ?
+Le 25 octobre, on te propose une journée complète pour explorer trois styles en un seul dimanche : Commercial, Reggaeton Girly et Afro Dancehall. Ouvert à tous les niveaux, dans un studio 100% féminin, safe et bienveillant.
+10h à 16h, Montigny-le-Bretonneux.
+Parking gratuit sur place.
+Réserve ta place 🌹
+
+Texte principal 5 :
+Danser, partager un repas, se faire masser, repartir pleine d'énergie 🔥
+L'Urban Session, c'est une journée pensée pour allier technique, expression urbaine et bien-être, entre femmes. Que tu débutes ou que tu danses déjà, tu as ta place.
+Dimanche 25 octobre, de 10h à 16h
+The Muse Lab, 2 avenue des Bosquets, Montigny-le-Bretonneux
+Il ne reste que quelques places. Réserve maintenant 🌹
