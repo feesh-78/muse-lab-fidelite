@@ -64,7 +64,7 @@ Bouton : Réserver
 - Programme : 10h15 Musicalité · 11h Commercial · 12h Repas · 13h Reggaeton Girly · 14h Afro Dancehall · 15h Massage, échange, goûter
 - Lien : `https://themuselab.fr/urban-session/?utm_source=meta&utm_medium=paid&utm_campaign=urban-session-25-10`
 - Visuels : `urban-session_feed_1080x1350.jpg` (point en trop après « transmission » retiré) · `urban-session-programme_feed_1080x1350.jpg`
-- À vérifier avant diffusion : « Parking gratuit sur place » (texte 4).
+- Parking gratuit à Montigny : confirmé (texte 4).
 
 Titres (40 caractères max) :
 - 🌹 Urban Session, dimanche 25 octobre
