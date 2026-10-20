@@ -867,3 +867,6 @@ textarea.field { padding: 16px 18px; line-height: 1.5; resize: vertical; }
 .tg-corner, .tg-allday-label, .tg-hours { position: sticky; left: 0; z-index: 3; background: var(--creme); }
 .rdv-line { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
 .rdv-line .cal-swatch { flex: none; }
+.week-debits { list-style: none; margin: 4px 0 0; padding: 8px 0 0; border-top: 1px solid rgba(255, 255, 255, 0.25); display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.week-debits li { display: flex; justify-content: space-between; gap: 12px; }
+.week-debits li strong { white-space: nowrap; }

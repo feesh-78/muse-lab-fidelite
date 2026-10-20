@@ -108,6 +108,17 @@ function debitDialog(debit) {
     }, { label: 'prélèvement' });
 }
 
+// Montant au centime près (4,95 €, 11,90 €), là où le détail compte
+const exactEuros = (v) => {
+    const n = toNumber(v);
+    return `${n.toLocaleString('fr-FR', { minimumFractionDigits: Number.isInteger(n) ? 0 : 2, maximumFractionDigits: 2 }).replace(/\u202f|\u00a0/g, ' ')} €`;
+};
+// Le détail des prélèvements de la semaine : une ligne par prélèvement, avec sa date et son montant
+function weekDebitLines(r) {
+    return h('ul', { class: 'week-debits' }, r.weekDebits.map((x) => h('li', null,
+        h('span', null, `${x.label} · le ${fromKey(x.date).getDate()}`), h('strong', null, exactEuros(x.amount)))));
+}
+
 function transferCard(b) {
     const r = mondayTransfer(b);
     const pct = (v) => (r.gross ? (v / r.gross) * 100 : 0);
@@ -120,8 +131,8 @@ function transferCard(b) {
             seg(r.debits, 'debits', 'prélèvements'), seg(r.life, 'life', 'ma vie'), seg(r.saving, 'saving', 'épargne'))
             : h('p', null, 'saisis ton budget de vie, ton épargne et tes prélèvements : le montant se calcule tout seul.'),
         h('div', { class: 'transfer-lines' },
-            h('span', null, h('span', { class: 'key debits' }), 'prélèvements de la semaine · ', h('strong', null, euros(r.debits)),
-                r.weekDebits.length ? h('span', { class: 'light' }, ` (${r.weekDebits.map((x) => `${x.label} le ${fromKey(x.date).getDate()}`).join(', ')})`) : null),
+            h('span', null, h('span', { class: 'key debits' }), 'prélèvements de la semaine · ', h('strong', null, exactEuros(r.debits))),
+            r.weekDebits.length ? weekDebitLines(r) : null,
             h('span', null, h('span', { class: 'key life' }), 'ma vie de la semaine · ', h('strong', null, euros(r.life))),
             h('span', null, h('span', { class: 'key saving' }), 'mon épargne · ', h('strong', null, euros(r.saving))),
             h('span', { class: 'light' }, `moins ce qui est déjà sur ${r.main ? r.main.name : 'mon compte'} · `, h('strong', null, euros(r.balance)))));
@@ -208,8 +219,8 @@ function dayDetail(b, key) {
         parts.push(h('div', { class: 'mg-transfer' },
             h('span', null, `à me verser pour la semaine du ${d.getDate()} au ${sunday.getDate()}`),
             h('strong', { class: 'mg-big' }, euros(r.gross)),
-            h('span', { class: 'small' }, `prélèvements ${euros(r.debits)} · ma vie ${euros(r.life)} · épargne ${euros(r.saving)}`),
-            r.weekDebits.length ? h('span', { class: 'small' }, r.weekDebits.map((x) => `${x.label} le ${fromKey(x.date).getDate()}`).join(', ')) : null,
+            h('span', { class: 'small' }, `prélèvements ${exactEuros(r.debits)} · ma vie ${euros(r.life)} · épargne ${euros(r.saving)}`),
+            r.weekDebits.length ? weekDebitLines(r) : null,
             h('label', { class: 'check-line small' }, payCheck(b, key, 'virement', 'le virement de la semaine'), 'virement fait')));
     }
     parts.push(ds.length
