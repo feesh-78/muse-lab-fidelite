@@ -1,6 +1,6 @@
 // Connexions iPhone : agenda iCloud (dans les deux sens) et rappels (via un raccourci de l'app Raccourcis)
 import { h, modal, confirmDialog, toast } from '../ui.js';
-import { all, remove, update, singleton, getMode, getClient, currentSession } from '../store.js';
+import { all, remove, update, singleton, getMode, getClient, currentSession, isOpenAccess } from '../store.js';
 import { CALENDARS } from '../data.js';
 import { icloud, isConnected, connect, saveMapping, disconnect, saveEvent, targetOf, errorText, loadStatus } from '../icloud.js';
 import { shortDate } from '../dates.js';
@@ -12,13 +12,15 @@ export function connectionsDialog() {
         const draw = () => box.replaceChildren(
             h('div', { class: 'section-head' }, h('h2', null, 'iCloud et rappels.'),
                 h('button', { type: 'button', class: 'btn ghost small', onclick: () => close(null) }, 'fermer')),
-            getMode() !== 'cloud'
-                ? h('p', { class: 'muted' }, 'disponible une fois connectée à ton compte (pas en mode démo).')
+            getMode() !== 'cloud' || isOpenAccess()
+                ? h('p', { class: 'muted' }, isOpenAccess()
+                    ? 'en pause pendant l\'accès sans mot de passe : l\'agenda iCloud et les rappels demandent une vraie connexion.'
+                    : 'disponible une fois connectée à ton compte (pas en mode démo).')
                 : h('div', { class: 'stack' }, agendaPart(draw), remindersPart(draw)),
         );
         draw();
         // État à jour (relié depuis un autre appareil ?) puis nouveau dessin, sauf si une saisie est en cours
-        if (getMode() === 'cloud') loadStatus().then(() => { if (box.isConnected && !box.contains(document.activeElement)) draw(); });
+        if (getMode() === 'cloud' && !isOpenAccess()) loadStatus().then(() => { if (box.isConnected && !box.contains(document.activeElement)) draw(); });
     }, { label: 'iCloud et rappels' });
 }
 

@@ -1,7 +1,7 @@
 // Agenda iCloud : les rendez-vous des agendas reliés s'affichent dans le calendrier, et ce qui est ajouté,
 // modifié ou supprimé dans l'outil sur un calendrier relié l'est aussi sur l'iPhone.
 // Le serveur (api/icloud.js) parle à Apple : le navigateur ne voit jamais le mot de passe d'application.
-import { getMode, accessToken } from './store.js';
+import { getMode, accessToken, isOpenAccess } from './store.js';
 import { state } from './state.js';
 import { addDays, today } from './dates.js';
 
@@ -52,7 +52,7 @@ export async function api(action, { body, params = {} } = {}) {
     return data;
 }
 
-export const isConnected = () => getMode() === 'cloud' && !!icloud.status?.connected;
+export const isConnected = () => getMode() === 'cloud' && !isOpenAccess() && !!icloud.status?.connected;
 // Agenda iCloud relié à un calendrier de l'outil (ou null)
 export const targetOf = (calendar) => (isConnected() && icloud.status.mapping?.[calendar]) || null;
 
@@ -63,7 +63,7 @@ function setStatus(status) {
 }
 
 export async function loadStatus() {
-    if (getMode() !== 'cloud') return;
+    if (getMode() !== 'cloud' || isOpenAccess()) return;
     try {
         setStatus(await api('status'));
         state.rerender();

@@ -13,6 +13,7 @@ const RETRY_DELAY = 5000;
 let client = null;
 let mode = null; // 'cloud' | 'demo'
 let user = null;
+let openAccess = false; // accès sans mot de passe (acces-libre.sql)
 const items = new Map();
 const pending = new Set(); // ids à enregistrer (ou à supprimer s'ils ne sont plus dans items)
 const listeners = new Set();
@@ -215,6 +216,18 @@ export async function startCloud(session) {
     if (!items.size) seed(); else upgradeSeed();
     if (pending.size) flush();
 }
+
+// Accès sans mot de passe (temporaire, acces-libre.sql) : le compte dont les données sont ouvertes, sinon null
+export async function openOwner() {
+    if (!initClient()) return null;
+    const { data, error } = await client.rpc('pilotage_open_owner');
+    return error ? null : (data || null);
+}
+export async function startOpen(ownerId) {
+    openAccess = true;
+    await startCloud({ user: { id: ownerId } });
+}
+export const isOpenAccess = () => openAccess;
 
 export function startDemo() {
     mode = 'demo';

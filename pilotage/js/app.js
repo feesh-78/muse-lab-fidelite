@@ -128,8 +128,8 @@ function sideNav(current) {
             h('button', { type: 'button', class: 'btn wide', onclick: () => newProjectDialog() }, '+ nouveau projet'),
             saveIndicator(),
             h('button', { type: 'button', class: 'link plain small', onclick: () => connectionsDialog() }, 'iCloud et rappels'),
-            store.getMode() === 'cloud' ? h('button', { type: 'button', class: 'link plain small', onclick: () => passwordDialog() }, 'changer mon mot de passe') : null,
-            h('button', { type: 'button', class: 'link plain small', onclick: logout }, store.getMode() === 'demo' ? 'quitter le mode démo' : 'se déconnecter')));
+            store.getMode() === 'cloud' && !store.isOpenAccess() ? h('button', { type: 'button', class: 'link plain small', onclick: () => passwordDialog() }, 'changer mon mot de passe') : null,
+            store.isOpenAccess() ? null : h('button', { type: 'button', class: 'link plain small', onclick: logout }, store.getMode() === 'demo' ? 'quitter le mode démo' : 'se déconnecter')));
 }
 
 function mobileTop() {
@@ -163,8 +163,8 @@ function openMenu() {
             h('button', { type: 'button', class: 'btn wide', onclick: () => { close(); newProjectDialog(); } }, '+ nouveau projet'),
             saveIndicator(),
             h('button', { type: 'button', class: 'link plain small', onclick: () => { close(); connectionsDialog(); } }, 'iCloud et rappels'),
-            store.getMode() === 'cloud' ? h('button', { type: 'button', class: 'link plain small', onclick: () => { close(); passwordDialog(); } }, 'changer mon mot de passe') : null,
-            h('button', { type: 'button', class: 'link plain small', onclick: () => { close(); logout(); } }, store.getMode() === 'demo' ? 'quitter le mode démo' : 'se déconnecter')));
+            store.getMode() === 'cloud' && !store.isOpenAccess() ? h('button', { type: 'button', class: 'link plain small', onclick: () => { close(); passwordDialog(); } }, 'changer mon mot de passe') : null,
+            store.isOpenAccess() ? null : h('button', { type: 'button', class: 'link plain small', onclick: () => { close(); logout(); } }, store.getMode() === 'demo' ? 'quitter le mode démo' : 'se déconnecter')));
     document.body.append(sheet);
 }
 
@@ -252,7 +252,10 @@ function render() {
     if (!window.supabase) { renderLogin('connexion indisponible (réseau ?). tu peux essayer le mode démo.'); return; }
     try {
         const session = await store.currentSession();
-        if (session) { store.keepStorage(); startApp(() => store.startCloud(session)); }
+        if (session) { store.keepStorage(); startApp(() => store.startCloud(session)); return; }
+        // Accès sans mot de passe ouvert dans Supabase (acces-libre.sql) : on entre directement
+        const owner = await store.openOwner();
+        if (owner) startApp(() => store.startOpen(owner));
         else renderLogin();
     } catch (err) {
         console.error(err);
