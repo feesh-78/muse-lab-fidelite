@@ -20,6 +20,11 @@ Adresses :
 - Inscriptions publiques désactivées. Le compte de Maryse a été créé par Philippe : **aucun autre compte à créer**.
 - À vérifier : première connexion réelle de Maryse (ordinateur puis téléphone) et synchronisation entre les deux.
 
+## Accès sans mot de passe (temporaire, depuis le 24 octobre 2026)
+- `acces-libre.sql` a été exécuté : l'adresse ouvre directement l'espace de Maryse, sans écran de connexion.
+  Toute personne qui connaît l'adresse peut voir et modifier les données. L'agenda iCloud et les rappels sont en pause.
+- Pour remettre le mot de passe : exécuter les 3 lignes « POUR REMETTRE LE MOT DE PASSE » en tête de `acces-libre.sql`.
+
 ## Connexion
 - **Utilisateur : maryse** (majuscules indifférentes). Le mot de passe n'est écrit nulle part dans le dépôt, qui est public.
 - Pour le changer : menu > **changer mon mot de passe** (le mot de passe actuel est demandé).
