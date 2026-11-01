@@ -1,10 +1,10 @@
-# Workshops novembre 2026 : plan de mise à jour du site
+# Workshops novembre 2026 : mise à jour du site (faite le 1er novembre 2026)
 
 Source de vérité : Bsport (relevé du 1er novembre 2026). Les affiches de ce dossier ont été contrôlées une à une contre ce relevé.
 
 ## 1. Les 8 workshops (ordre chronologique)
 
-| Date | Workshop | Prof | Horaire | Studio | Tarif affiche | URL prévue | Visuel |
+| Date | Workshop | Prof | Horaire | Studio | Tarif affiche | URL (en ligne) | Visuel |
 |---|---|---|---|---|---|---|---|
 | sam. 7/11 | Sensual Jazz | Maria K | 17h30-19h30 | Montigny (78) | 25 € | `/workshop-sensual-jazz-montigny-78/` | `sensual-jazz-montigny-07-11-2026.jpg` (corrigé) |
 | sam. 14/11 | Commercial Girly | Catalina | 14h-16h | Montigny (78) | 25 € | `/workshop-commercial-girly-montigny-78/` | `commercial-girly-montigny-14-11-2026.jpg` |
@@ -77,3 +77,19 @@ Il faut le widget exact de chacun des 8 événements, en vérifiant l'événemen
   - les 2 plannings ;
   - les pages studios.
 - Contrôle de tous les liens : statut 200 et ancres existantes.
+
+## 6. État au 1er novembre 2026 (soir)
+
+Fait :
+- 8 pages workshop publiées, avec visuel, SEO Rank Math et calendrier Bsport du bon studio (Montigny : établissement 12592, Boulogne : 20585).
+- Page Events : 8 cartes « à venir », classées par date et par studio. Halloween est marqué « Terminé » dans les events du Lab, sans bouton de réservation. Le texte d'intro est mis à jour.
+- Bloc « nos events » (composant 4370) : 8 workshops, Halloween retiré. Grille en 2 colonnes sur mobile.
+- Bandeau : « Workshops de novembre · Boulogne (92) & Montigny (78) », lien vers la page Events (#workshops).
+- Pop-up 3509 : contenu d'origine restauré à partir de la révision 4891.
+- Page Halloween : conservée. Les deux soirées sont marquées « Terminé », les boutons mènent aux prochains events et le widget Bsport est retiré.
+- Planning Boulogne : le message sur le Reggaeton terminé est remplacé par les workshops de novembre de Boulogne.
+- Liens internes : tous en 200 et toutes les ancres existent.
+
+Reste :
+- Widgets Bsport propres à chaque événement : le calendrier du studio est en place en attendant.
+- Lady Fusion : visuel (la couverture Boulogne est utilisée en attendant), tarif et niveau.
