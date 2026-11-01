@@ -90,6 +90,19 @@ Fait :
 - Planning Boulogne : le message sur le Reggaeton terminé est remplacé par les workshops de novembre de Boulogne.
 - Liens internes : tous en 200 et toutes les ancres existent.
 
+Widgets Bsport propres à chaque événement : intégrés le 1er novembre. Codes générés par Philippe : calendrier, vue hebdomadaire liste, dialogMode 3, fullScreenPopup false, showFab false. Chaque code filtre une activité et un studio.
+
+| Workshop | Activité | Studio | Conteneur |
+|---|---|---|---|
+| Sensual Jazz 7/11 | 289163 | 12592 | bsport-widget-960841 |
+| Commercial Girly 14/11 | 288956 | 12592 | bsport-widget-165072 |
+| Commercial 15/11 | 266458 | 20585 | bsport-widget-442141 |
+| Clip Performance 21/11 | 269489 | 20585 | bsport-widget-302882 |
+| Heels Initiation 22/11 | 262635 | 20585 | bsport-widget-519588 |
+| Afro Dancehall 22/11 | 288957 | 12592 | bsport-widget-338709 |
+| Street Jazz 22/11 | 205466 | 20585 | bsport-widget-969700 |
+| Lady Fusion 28/11 | 288959 | 20585 | bsport-widget-489242 |
+
 Reste :
-- Widgets Bsport propres à chaque événement : le calendrier du studio est en place en attendant.
+- Vérifier dans un navigateur que chaque calendrier affiche bien la séance datée attendue. Le script Bsport est bloqué depuis la session Claude.
 - Lady Fusion : visuel (la couverture Boulogne est utilisée en attendant), tarif et niveau.
