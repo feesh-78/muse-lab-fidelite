@@ -106,3 +106,12 @@ Widgets Bsport propres à chaque événement : intégrés le 1er novembre. Codes
 Reste :
 - Vérifier dans un navigateur que chaque calendrier affiche bien la séance datée attendue. Le script Bsport est bloqué depuis la session Claude.
 - Lady Fusion : visuel (la couverture Boulogne est utilisée en attendant), tarif et niveau.
+
+## 7. 6 novembre 2026 : Sensual Jazz du 7/11 retiré du site
+
+Le workshop est annulé faute d'inscrites.
+- La page `/workshop-sensual-jazz-montigny-78/` repasse en brouillon : elle renvoie une erreur 404 mais n'est pas supprimée.
+- Sa carte est retirée de la page Events et du bloc « nos events ».
+- Page Events : l'image de partage (Rank Math) et l'image mise en avant sont remplacées par la couverture « workshops novembre 2026 Montigny ».
+- Bloc « nos events » : les nouveaux visuels Clip Performance (média 5161) et Lady Fusion (média 5162) sont repris.
+- Rien n'a été modifié dans Bsport ni dans Meta.
