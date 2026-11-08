@@ -58,6 +58,7 @@ const state = {
     loaded: false,
     notesReady: true,
     heuresReady: true,
+    prixReady: true,
     // Données enregistrées
     items: [],
     checks: [],
@@ -69,7 +70,7 @@ const state = {
     heuresMonth: [],
     lastMenage: null,
     // Saisie en cours (non enregistrée)
-    draft: { checked: new Set(), hours: 0, needs: [], bought: new Set(), note: '' },
+    draft: { checked: new Set(), hours: 0, needs: [], bought: new Set(), prices: {}, note: '' },
     save: { kind: '', text: '' },
 };
 
@@ -82,6 +83,22 @@ function formatHours(h) {
     const minutes = Math.round(Number(h) * 60);
     const rest = minutes % 60;
     return `${Math.floor(minutes / 60)}h${rest ? String(rest).padStart(2, '0') : ''}`;
+}
+// 12.5 -> « 12,50 € »
+function formatPrice(n) {
+    return `${Number(n).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+}
+// Prix saisi (brouillon) ou enregistré ; null si vide
+function priceOf(achat) {
+    const d = state.draft.prices;
+    if (Object.prototype.hasOwnProperty.call(d, achat.id)) return d[achat.id];
+    return achat.prix == null ? null : Number(achat.prix);
+}
+function priceChanged(achat) {
+    const d = state.draft.prices;
+    if (!Object.prototype.hasOwnProperty.call(d, achat.id)) return false;
+    const saved = achat.prix == null ? null : Number(achat.prix);
+    return d[achat.id] !== saved;
 }
 function formatTime(iso) {
     return new Date(iso).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
@@ -140,6 +157,10 @@ function iconBtn(icon, title, onClick, extraClass = '') {
     return b;
 }
 
+// PGRST204 / 42703 = colonne inexistante (script SQL d'ajout pas encore exécuté)
+function isMissingColumn(error) {
+    return Boolean(error) && (error.code === 'PGRST204' || error.code === '42703' || /column/i.test(error.message || ''));
+}
 // 42P01 / PGRST205 = table inexistante
 function isMissingTable(error) {
     return Boolean(error) && (error.code === '42P01' || error.code === 'PGRST205' || /does not exist|schema cache/i.test(error.message || ''));
@@ -229,6 +250,7 @@ function resetDraft() {
         hours: personHours(),
         needs: [],
         bought: new Set(),
+        prices: {},
         note: '',
     };
     $('noteInput').value = '';
@@ -261,12 +283,13 @@ function draftChanges() {
         hours: state.heuresReady && state.person && d.hours !== personHours(),
         needs: d.needs.length,
         bought: d.bought.size,
+        prices: state.achats.filter((a) => !d.bought.has(a.id) && priceChanged(a)).map((a) => a.id),
         note: d.note.trim().length > 0,
     };
 }
 function isDirty() {
     const c = draftChanges();
-    return c.added.length > 0 || c.removed.length > 0 || c.hours || c.needs > 0 || c.bought > 0 || c.note;
+    return c.added.length > 0 || c.removed.length > 0 || c.hours || c.needs > 0 || c.bought > 0 || c.prices.length > 0 || c.note;
 }
 function confirmLeave() {
     return !isDirty() || confirm('Le suivi n’est pas enregistré. Abandonner ces modifications ?');
@@ -483,22 +506,64 @@ function renderReassort() {
         btn.type = 'button';
         btn.setAttribute('aria-pressed', String(bought));
         btn.addEventListener('click', () => toggleBought(a.id));
-        li.append(text, btn);
+        li.append(text);
+        if (state.prixReady) li.append(priceField(a));
+        li.append(btn);
         pendingList.append(li);
     });
     $('pendingWrap').hidden = state.editing || (!pending.length && !state.draft.needs.length);
+    $('prixNotice').hidden = state.prixReady;
 
+    // Achats déjà faits : le prix reste modifiable, le total du mois s'affiche dans le titre
     const bought = state.achats.filter((a) => a.fait).slice(0, 8);
     const boughtList = $('boughtList');
     boughtList.replaceChildren();
     bought.forEach((a) => {
         const li = el('li', 'pending-item');
         const text = el('span', 'pending-text', a.article);
-        text.append(el('small', '', `Studio ${a.studio} · signalé le ${shortDay(toKey(new Date(a.created_at)))}`));
+        const price = priceOf(a);
+        const small = el('small', '', `Studio ${a.studio} · signalé le ${shortDay(toKey(new Date(a.created_at)))}`);
+        if (price != null) {
+            small.append(document.createTextNode(' · '));
+            small.append(el('b', '', formatPrice(price)));
+        }
+        text.append(small);
         li.append(text);
+        if (state.prixReady) li.append(priceField(a));
         boughtList.append(li);
     });
+    const month = today().slice(0, 7);
+    const monthSpent = state.achats
+        .filter((a) => a.fait && a.created_at.slice(0, 7) === month && priceOf(a) != null)
+        .reduce((sum, a) => sum + priceOf(a), 0);
+    $('boughtSummary').textContent = monthSpent ? `Achats déjà faits · ${formatPrice(monthSpent)} ce mois` : 'Achats déjà faits';
     $('boughtWrap').hidden = state.editing || !bought.length;
+}
+
+// Champ « Prix € » d'un achat : enregistré avec le bouton « Enregistrer le suivi »
+function priceField(achat) {
+    const wrap = el('label', 'price');
+    const input = el('input', priceChanged(achat) ? 'changed' : '');
+    input.type = 'number';
+    input.inputMode = 'decimal';
+    input.min = '0';
+    input.step = '0.01';
+    input.placeholder = 'Prix';
+    input.setAttribute('aria-label', `Prix payé pour ${achat.article}`);
+    const price = priceOf(achat);
+    input.value = price == null ? '' : String(price);
+    input.addEventListener('input', () => {
+        const value = input.value.replace(',', '.').trim();
+        const n = value === '' ? null : Math.round(Number(value) * 100) / 100;
+        if (n !== null && (Number.isNaN(n) || n < 0)) return;
+        state.draft.prices[achat.id] = n;
+        input.classList.toggle('changed', priceChanged(achat));
+        if (state.save.kind === 'ok' || state.save.kind === 'error') state.save = { kind: '', text: '' };
+        renderSaveBar();
+    });
+    // Pas de nouveau rendu à la sortie du champ : un appui sur « Acheté » juste après la saisie serait perdu
+    wrap.append(input, el('span', '', '€'));
+    return wrap;
 }
 
 function renderNotes() {
@@ -574,10 +639,14 @@ function renderCalendar() {
         return s;
     };
     const last = state.lastMenage ? (relativeDay(state.lastMenage) || shortDay(state.lastMenage)) : '—';
+    const spent = state.achats
+        .filter((a) => a.fait && a.created_at.slice(0, 7) === state.month && a.prix != null)
+        .reduce((sum, a) => sum + Number(a.prix), 0);
     summary.append(
         stat(last, `Dernier ménage · ${state.studio}`),
         stat(String(fullDays), 'Ménages complets'),
         stat(formatHours(monthHours), `Heures · studio ${state.studio}`),
+        stat(formatPrice(spent), 'Achats du mois (prix saisis)'),
     );
 
     // Récapitulatif des heures : une ligne par personne, une colonne par studio
@@ -775,12 +844,30 @@ async function saveSuivi() {
         }
     }
 
-    // 4. Achats faits
-    if (changes.bought) {
+    // 4. Achats faits (avec leur prix) et prix modifiés
+    if (changes.bought || changes.prices.length) {
+        const updates = [];
+        d.bought.forEach((id) => {
+            const row = { fait: true };
+            if (Object.prototype.hasOwnProperty.call(d.prices, id)) row.prix = d.prices[id];
+            updates.push([id, row]);
+        });
+        changes.prices.forEach((id) => updates.push([id, { prix: d.prices[id] }]));
         try {
-            await must(supabase.from('menage_achats').update({ fait: true }).in('id', [...d.bought]));
+            for (const [id, row] of updates) {
+                const { error } = await supabase.from('menage_achats').update(row).eq('id', id);
+                if (error && isMissingColumn(error) && 'prix' in row) {
+                    // Colonne prix absente : on enregistre quand même l'achat, sans le prix
+                    state.prixReady = false;
+                    delete row.prix;
+                    if (Object.keys(row).length) await must(supabase.from('menage_achats').update(row).eq('id', id));
+                } else if (error) {
+                    throw error;
+                }
+            }
             d.bought = new Set();
-            saved.push('achats');
+            d.prices = {};
+            saved.push(state.prixReady ? 'achats' : 'achats (sans prix : colonne absente)');
         } catch (error) {
             console.error(error);
             failed.push('achats');
