@@ -515,14 +515,25 @@ function renderReassort() {
     $('prixNotice').hidden = state.prixReady;
 
     // Achats déjà faits : le prix reste modifiable, le total du mois s'affiche dans le titre
-    const bought = state.achats.filter((a) => a.fait).slice(0, 8);
+    // Tous les achats faits (jusqu'aux 100 derniers signalements chargés), groupés par mois
+    const bought = state.achats.filter((a) => a.fait);
     const boughtList = $('boughtList');
     boughtList.replaceChildren();
+    let currentMonth = '';
     bought.forEach((a) => {
+        const month = a.created_at.slice(0, 7);
+        if (month !== currentMonth) {
+            currentMonth = month;
+            const spent = bought
+                .filter((b) => b.created_at.slice(0, 7) === month && priceOf(b) != null)
+                .reduce((sum, b) => sum + priceOf(b), 0);
+            const label = fromKey(`${month}-01`).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' });
+            boughtList.append(el('li', 'month-head', spent ? `${label} · ${formatPrice(spent)}` : label));
+        }
         const li = el('li', 'pending-item');
         const text = el('span', 'pending-text', a.article);
         const price = priceOf(a);
-        const small = el('small', '', `Studio ${a.studio} · signalé le ${shortDay(toKey(new Date(a.created_at)))}`);
+        const small = el('small', '', `Studio ${a.studio} · ${shortDay(toKey(new Date(a.created_at)))}${a.demande_par ? ` · ${a.demande_par}` : ''}`);
         if (price != null) {
             small.append(document.createTextNode(' · '));
             small.append(el('b', '', formatPrice(price)));
@@ -536,7 +547,7 @@ function renderReassort() {
     const monthSpent = state.achats
         .filter((a) => a.fait && a.created_at.slice(0, 7) === month && priceOf(a) != null)
         .reduce((sum, a) => sum + priceOf(a), 0);
-    $('boughtSummary').textContent = monthSpent ? `Achats déjà faits · ${formatPrice(monthSpent)} ce mois` : 'Achats déjà faits';
+    $('boughtSummary').textContent = `Achats déjà faits (${bought.length})${monthSpent ? ` · ${formatPrice(monthSpent)} ce mois` : ''}`;
     $('boughtWrap').hidden = state.editing || !bought.length;
 }
 

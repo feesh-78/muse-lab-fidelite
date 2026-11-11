@@ -360,6 +360,15 @@ textarea { height: auto; border-radius: 14px; padding: 12px 16px; resize: vertic
 .pending-text small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
 .history summary { font-size: 13px; color: var(--muted); cursor: pointer; padding: 6px 0; }
 .history .pending-item { background: var(--cream); }
+.month-head {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+    letter-spacing: 0.02em;
+    color: var(--bordeaux);
+    padding: 10px 0 4px;
+}
+.month-head:first-child { padding-top: 4px; }
 
 /* Transmissions */
 .notes { list-style: none; display: flex; flex-direction: column; }
