@@ -113,12 +113,17 @@
                     <input type="text" id="needInput" placeholder="Autre produit…" maxlength="120" required>
                     <button type="submit" class="btn-small">Signaler</button>
                 </form>
+                <div id="prixNotice" class="notice" hidden>
+                    Les prix ne sont pas activés dans la base (colonne <code>prix</code> absente) :
+                    exécutez une fois <a href="https://github.com/feesh-78/muse-lab-fidelite/blob/main/menage-prix.sql" target="_blank" rel="noopener">menage-prix.sql</a>
+                    dans <a href="https://supabase.com/dashboard/project/nxqttyosjjirqtcvfkbk/sql/new" target="_blank" rel="noopener">l'éditeur SQL Supabase</a>.
+                </div>
                 <div class="pending" id="pendingWrap" hidden>
-                    <h3>À acheter</h3>
+                    <h3>À acheter <small>· « Acheté » + prix payé</small></h3>
                     <ul class="pending-list" id="pendingList"></ul>
                 </div>
                 <details class="history" id="boughtWrap" hidden>
-                    <summary>Achats déjà faits</summary>
+                    <summary id="boughtSummary">Achats déjà faits</summary>
                     <ul class="pending-list" id="boughtList"></ul>
                 </details>
             </section>
