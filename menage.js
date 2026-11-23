@@ -1,5 +1,5 @@
 // The Muse Lab — Suivi du jour
-// Une seule page : ménage, heures, réassort et transmission, enregistrés d'un coup avec « Enregistrer le suivi ».
+// Une seule page : ménage, stock, heures et mot pour l'équipe, enregistrés d'un coup avec « Terminer ma journée ».
 // Données partagées via Supabase (tables menage_items, menage_checks, menage_heures, menage_achats, menage_notes).
 
 // Email prévenu quand un produit manque.
@@ -11,6 +11,12 @@ const NOTIFY_ENDPOINT = `https://formsubmit.co/ajax/${NOTIFY_EMAIL}`;
 // Personnes qui font le ménage. Les noms déjà présents dans l'historique restent affichés dans les récapitulatifs.
 const PEOPLE = ['Kalie', 'Valériane', 'Maryse'];
 const STUDIOS = ['78', '92'];
+const STUDIO_NAMES = { 78: 'Montigny 78', 92: 'Boulogne 92' };
+const HOURS_STEP = 0.25;
+const NOTES_SHOWN = 2;
+const PROBLEM_PREFIX = '⚠ Problème : ';
+// Un besoin urgent est un achat dont la note vaut « urgent »
+const URGENT = 'urgent';
 const REFRESH_MS = 30000;
 const MAX_HOURS = 12;
 
@@ -70,7 +76,8 @@ const state = {
     heuresMonth: [],
     lastMenage: null,
     // Saisie en cours (non enregistrée)
-    draft: { checked: new Set(), hours: 0, needs: [], bought: new Set(), prices: {}, note: '' },
+    draft: { checked: new Set(), stock: {}, hours: 0, needs: [], bought: new Set(), prices: {}, note: '', problem: false },
+    notesExpanded: false,
     save: { kind: '', text: '' },
 };
 
@@ -82,6 +89,7 @@ const toastEl = $('toast');
 function formatHours(h) {
     const minutes = Math.round(Number(h) * 60);
     const rest = minutes % 60;
+    if (minutes > 0 && minutes < 60) return `${minutes} min`;
     return `${Math.floor(minutes / 60)}h${rest ? String(rest).padStart(2, '0') : ''}`;
 }
 // 12.5 -> « 12,50 € »
@@ -177,6 +185,39 @@ const menageItems = () => state.items.filter((i) => i.list === LIST_MENAGE);
 const restockItems = () => state.items.filter((i) => i.list === LIST_RESTOCK);
 const isFuture = () => state.day > today();
 const pendingAchats = () => state.achats.filter((a) => !a.fait);
+const isUrgent = (achat) => norm(achat.note || '') === URGENT;
+// Besoin déjà enregistré pour ce produit dans le studio affiché
+const pendingFor = (item) => pendingAchats().find((a) => a.studio === state.studio && norm(a.article) === norm(productName(item.label)));
+// État du stock d'un produit : 'reste' (case cochée ce jour), 'racheter' ou 'urgent' (besoin en attente), sinon null
+function savedStock(item) {
+    const pending = pendingFor(item);
+    if (pending) return isUrgent(pending) ? 'urgent' : 'racheter';
+    return state.checks.some((c) => c.item_id === item.id) ? 'reste' : null;
+}
+function stockOf(item) {
+    const d = state.draft.stock;
+    return Object.prototype.hasOwnProperty.call(d, item.id) ? d[item.id] : savedStock(item);
+}
+// Cases à cocher voulues : étapes de ménage cochées + produits « il en reste »
+function desiredChecks() {
+    const ids = new Set(state.draft.checked);
+    restockItems().forEach((item) => { if (stockOf(item) === 'reste') ids.add(item.id); });
+    return ids;
+}
+// Ce que la saisie du stock change dans la liste de courses
+function stockOps() {
+    const ops = { inserts: [], updates: [], deletes: [] };
+    restockItems().forEach((item) => {
+        const target = stockOf(item);
+        if (target === savedStock(item)) return;
+        const pending = pendingFor(item);
+        const wanted = target === 'racheter' || target === 'urgent';
+        if (pending && !wanted) ops.deletes.push(pending.id);
+        else if (pending) ops.updates.push({ id: pending.id, note: target === 'urgent' ? URGENT : null });
+        else if (wanted) ops.inserts.push({ article: productName(item.label), urgent: target === 'urgent' });
+    });
+    return ops;
+}
 const personHours = () => state.hoursDay
     .filter((h) => h.person === state.person)
     .reduce((sum, h) => sum + Number(h.hours), 0);
@@ -246,12 +287,14 @@ async function loadMonth() {
 
 function resetDraft() {
     state.draft = {
-        checked: new Set(state.checks.map((c) => c.item_id)),
+        checked: new Set(state.checks.map((c) => c.item_id).filter((id) => menageItems().some((i) => i.id === id))),
+        stock: {},
         hours: personHours(),
         needs: [],
         bought: new Set(),
         prices: {},
         note: '',
+        problem: false,
     };
     $('noteInput').value = '';
 }
@@ -267,7 +310,7 @@ async function loadAll({ keepDraft = false } = {}) {
     } catch (error) {
         console.error(error);
         $('setupNotice').hidden = false;
-        setStatus('error', 'Connexion à la base impossible. Vérifiez internet puis rechargez la page.');
+        setStatus('error', 'Connexion impossible. Vérifie internet puis recharge la page.');
     }
 }
 
@@ -275,11 +318,15 @@ async function loadAll({ keepDraft = false } = {}) {
 function draftChanges() {
     const d = state.draft;
     const saved = new Set(state.checks.map((c) => c.item_id));
-    const added = [...d.checked].filter((id) => !saved.has(id));
-    const removed = state.checks.filter((c) => !d.checked.has(c.item_id));
+    const desired = desiredChecks();
+    const added = [...desired].filter((id) => !saved.has(id));
+    const removed = state.checks.filter((c) => !desired.has(c.item_id));
+    const ops = stockOps();
     return {
         added,
         removed,
+        stock: ops,
+        stockCount: ops.inserts.length + ops.updates.length + ops.deletes.length,
         hours: state.heuresReady && state.person && d.hours !== personHours(),
         needs: d.needs.length,
         bought: d.bought.size,
@@ -289,10 +336,10 @@ function draftChanges() {
 }
 function isDirty() {
     const c = draftChanges();
-    return c.added.length > 0 || c.removed.length > 0 || c.hours || c.needs > 0 || c.bought > 0 || c.prices.length > 0 || c.note;
+    return c.added.length > 0 || c.removed.length > 0 || c.stockCount > 0 || c.hours || c.needs > 0 || c.bought > 0 || c.prices.length > 0 || c.note || state.draft.problem;
 }
 function confirmLeave() {
-    return !isDirty() || confirm('Le suivi n’est pas enregistré. Abandonner ces modifications ?');
+    return !isDirty() || confirm('Ta journée n’est pas enregistrée. Abandonner ces modifications ?');
 }
 
 // ---------- Statut d'enregistrement ----------
@@ -311,7 +358,7 @@ function renderSaveBar() {
     let { kind, text } = state.save;
     if (kind !== 'saving' && kind !== 'error' && dirty) {
         kind = 'dirty';
-        text = '● Pas encore enregistré : appuyez sur « Enregistrer le suivi ».';
+        text = '● Pas encore enregistré : appuie sur « Terminer ma journée ».';
     }
     statusEl.className = `save-status${kind ? ` is-${kind}` : ''}`;
     statusEl.textContent = text;
@@ -325,8 +372,19 @@ function renderSaveBar() {
     } else {
         const hasData = state.checks.length || state.hoursDay.length || state.notes.some((n) => n.day === state.day);
         btn.disabled = !dirty;
-        btn.textContent = dirty ? 'Enregistrer le suivi' : hasData ? '✓ Suivi enregistré pour ce jour' : 'Rien à enregistrer';
+        btn.textContent = dirty ? 'Terminer ma journée' : hasData ? '✓ Journée enregistrée' : 'Rien à enregistrer';
     }
+
+    // Résumé de la saisie au-dessus du bouton
+    const recap = [];
+    if (state.loaded) {
+        const items = menageItems();
+        recap.push(`Ménage ${items.filter((i) => state.draft.checked.has(i.id)).length} / ${items.length}`);
+        const toBuy = restockItems().filter((i) => ['racheter', 'urgent'].includes(stockOf(i))).length + state.draft.needs.length;
+        if (toBuy) recap.push(`${toBuy} à racheter`);
+        if (state.draft.hours) recap.push(`Heures ${formatHours(state.draft.hours)}`);
+    }
+    $('saveRecap').textContent = recap.join(' · ');
 }
 
 // ---------- Rendu ----------
@@ -380,18 +438,19 @@ function renderMenage() {
     const savedChecks = new Map(state.checks.map((c) => [c.item_id, c]));
     const done = items.filter((i) => state.draft.checked.has(i.id)).length;
     $('menageCount').textContent = `${done} / ${items.length}`;
+    $('menageProgress').style.width = items.length ? `${(done / items.length) * 100}%` : '0';
     $('allDone').hidden = state.editing || !items.length;
     $('allDone').textContent = done === items.length ? 'Tout décocher' : 'Tout est fait';
     $('addMenageForm').hidden = !state.editing;
 
-    if (!items.length) list.append(el('li', 'empty', 'Aucune étape. Utilisez « Modifier les listes » pour en ajouter.'));
+    if (!items.length) list.append(el('li', 'empty', 'Aucune étape. Utilise « Modifier les listes » pour en ajouter.'));
     items.forEach((item, index) => list.append(state.editing ? editRow(item, index, items) : taskRow(item, savedChecks.get(item.id))));
 }
 
 function taskRow(item, saved) {
     const li = el('li');
     const checked = state.draft.checked.has(item.id);
-    const b = el('button', `task${checked ? ' done' : ''}`);
+    const b = el('button', `task${checked ? ' done' : ''}${checked !== Boolean(saved) ? ' unsaved' : ''}`);
     b.type = 'button';
     b.setAttribute('aria-pressed', String(checked));
     const tick = el('span', 'tick');
@@ -400,8 +459,6 @@ function taskRow(item, saved) {
     body.append(el('span', 'task-label', item.label));
     if (saved && checked) {
         body.append(el('span', 'task-meta', `Fait${saved.done_by ? ` par ${saved.done_by}` : ''} à ${formatTime(saved.done_at)}`));
-    } else if (checked !== Boolean(saved)) {
-        body.append(el('span', 'changed', checked ? 'à enregistrer' : 'sera décoché à l’enregistrement'));
     }
     b.append(tick, body);
     b.addEventListener('click', () => toggleChecked(item.id));
@@ -427,7 +484,7 @@ function renderHeures() {
     $('hoursStepper').hidden = !ready;
     $('hoursQuick').hidden = !ready;
     const d = state.draft;
-    $('hoursWho').textContent = state.person ? state.person : 'Choisissez qui vous êtes en haut';
+    $('hoursWho').textContent = state.person ? state.person : 'Choisis qui tu es en haut';
     $('hoursValue').textContent = formatHours(d.hours);
     $('hoursMinus').disabled = d.hours <= 0;
     $('hoursPlus').disabled = d.hours >= MAX_HOURS;
@@ -439,7 +496,7 @@ function renderHeures() {
     const others = {};
     state.hoursDay.filter((h) => h.person !== state.person).forEach((h) => { others[h.person] = (others[h.person] || 0) + Number(h.hours); });
     const list = Object.entries(others).map(([name, h]) => `${name} ${formatHours(h)}`);
-    if (list.length) parts.push(`Aussi ce jour au ${state.studio} : ${list.join(' · ')}`);
+    if (list.length) parts.push(`Aussi ce jour à ${STUDIO_NAMES[state.studio]} : ${list.join(' · ')}`);
     $('hoursOthers').textContent = parts.join(' ');
 }
 
@@ -447,75 +504,79 @@ function renderReassort() {
     const list = $('restockList');
     list.replaceChildren();
     const items = restockItems();
-    const pendingNames = new Set(pendingAchats().filter((a) => a.studio === state.studio).map((a) => norm(a.article)));
-    const draftNames = new Set(state.draft.needs.map(norm));
-    const savedChecks = new Map(state.checks.map((c) => [c.item_id, c]));
     $('addRestockForm').hidden = !state.editing;
     $('needForm').hidden = state.editing;
 
     if (!items.length && !state.editing) list.append(el('li', 'empty', 'Aucun produit suivi. « Modifier les listes » pour en ajouter.'));
+    const OPTIONS = [['reste', 'Il en reste'], ['racheter', 'À racheter'], ['urgent', 'Urgent']];
     items.forEach((item, index) => {
         if (state.editing) {
             list.append(editRow(item, index, items));
             return;
         }
-        const name = productName(item.label);
-        const li = el('li', 'restock');
-        const title = el('span', 'restock-name', name);
-        const saved = savedChecks.get(item.id);
-        if (saved && state.draft.checked.has(item.id)) {
-            title.append(el('span', 'restock-meta', `remis${saved.done_by ? ` par ${saved.done_by}` : ''}`));
-        }
-
-        const okBtn = el('button', 'pill-btn ok', state.draft.checked.has(item.id) ? '✓ Remis' : 'Remis');
-        okBtn.type = 'button';
-        okBtn.setAttribute('aria-pressed', String(state.draft.checked.has(item.id)));
-        okBtn.addEventListener('click', () => toggleChecked(item.id));
-
-        const key = norm(name);
-        const already = pendingNames.has(key);
-        const drafted = draftNames.has(key);
-        const needBtn = el('button', `pill-btn need${already ? ' already' : ''}`, already ? 'Signalé' : drafted ? '! Manque' : 'Manque');
-        needBtn.type = 'button';
-        needBtn.disabled = already;
-        needBtn.setAttribute('aria-pressed', String(drafted));
-        if (already) needBtn.title = 'Déjà dans la liste « À acheter »';
-        needBtn.addEventListener('click', () => toggleNeed(name));
-
-        li.append(title, okBtn, needBtn);
+        const current = stockOf(item);
+        const li = el('li', 'stock');
+        li.append(el('span', 'stock-name', productName(item.label)));
+        const opts = el('div', 'stock-opts');
+        opts.setAttribute('role', 'group');
+        opts.setAttribute('aria-label', productName(item.label));
+        OPTIONS.forEach(([value, label]) => {
+            const b = el('button', `opt ${value}`, label);
+            b.type = 'button';
+            b.setAttribute('aria-pressed', String(current === value));
+            b.addEventListener('click', () => setStock(item, value));
+            opts.append(b);
+        });
+        li.append(opts);
         list.append(li);
     });
 
-    // À acheter : besoins déjà enregistrés (tous studios) + besoins en cours de saisie
-    const pending = pendingAchats().sort((a, b) => (a.studio === state.studio ? -1 : 0) - (b.studio === state.studio ? -1 : 0));
+    // Liste de courses : besoins en cours de saisie, puis besoins enregistrés des 2 studios (urgents d'abord)
+    const ops = stockOps();
     const pendingList = $('pendingList');
     pendingList.replaceChildren();
-    state.draft.needs.forEach((article) => {
+    const draftRow = (article, urgent, onRemove) => {
         const li = el('li', 'pending-item draft');
         const text = el('span', 'pending-text', article);
         text.append(el('small', '', `Studio ${state.studio} · à enregistrer`));
-        li.append(text, iconBtn('close', 'Retirer', () => toggleNeed(article)));
+        li.append(text, el('span', `badge${urgent ? ' urgent' : ''}`, urgent ? 'Urgent' : 'Cette semaine'));
+        if (onRemove) li.append(iconBtn('close', 'Retirer', onRemove));
         pendingList.append(li);
-    });
+    };
+    ops.inserts.forEach((need) => draftRow(need.article, need.urgent));
+    state.draft.needs.forEach((article) => draftRow(article, false, () => toggleNeed(article)));
+
+    const urgentAfterDraft = (a) => {
+        const update = ops.updates.find((u) => u.id === a.id);
+        return update ? update.note === URGENT : isUrgent(a);
+    };
+    const rank = (a) => (urgentAfterDraft(a) ? 0 : 2) + (a.studio === state.studio ? 0 : 1);
+    const pending = pendingAchats().filter((a) => !ops.deletes.includes(a.id)).sort((a, b) => rank(a) - rank(b));
     pending.forEach((a) => {
         const bought = state.draft.bought.has(a.id);
+        const urgent = urgentAfterDraft(a);
         const li = el('li', `pending-item${bought ? ' bought' : ''}`);
         const text = el('span', 'pending-text', `${a.article}${a.quantite ? ` · ${a.quantite}` : ''}`);
-        text.append(el('small', '', `Studio ${a.studio} · ${shortDay(toKey(new Date(a.created_at)))}${a.demande_par ? ` · ${a.demande_par}` : ''}`));
+        text.append(el('small', '', `Studio ${a.studio}${a.demande_par ? ` · ${a.demande_par}` : ''} · ${relativeDay(toKey(new Date(a.created_at))).toLowerCase() || shortDay(toKey(new Date(a.created_at)))}`));
         const btn = el('button', 'pill-btn ok', bought ? '✓ Acheté' : 'Acheté');
         btn.type = 'button';
         btn.setAttribute('aria-pressed', String(bought));
         btn.addEventListener('click', () => toggleBought(a.id));
-        li.append(text);
-        if (state.prixReady) li.append(priceField(a));
-        li.append(btn);
+        li.append(text, el('span', `badge${urgent ? ' urgent' : ''}`, urgent ? 'Urgent' : 'Cette semaine'), btn);
+        // Le prix payé se saisit au moment où l'on coche « Acheté »
+        if (bought && state.prixReady) {
+            const row = el('div', 'price-row');
+            row.append(el('span', '', 'Prix payé (facultatif)'), priceField(a));
+            li.append(row);
+        }
         pendingList.append(li);
     });
-    $('pendingWrap').hidden = state.editing || (!pending.length && !state.draft.needs.length);
+    if (!pending.length && !ops.inserts.length && !state.draft.needs.length) {
+        pendingList.append(el('li', 'empty', 'Rien à acheter pour le moment.'));
+    }
     $('prixNotice').hidden = state.prixReady;
 
-    // Achats déjà faits : le prix reste modifiable, le total du mois s'affiche dans le titre
-    // Tous les achats faits (jusqu'aux 100 derniers signalements chargés), groupés par mois
+    // Achats faits (jusqu'aux 100 derniers signalements chargés), groupés par mois, prix modifiable
     const bought = state.achats.filter((a) => a.fait);
     const boughtList = $('boughtList');
     boughtList.replaceChildren();
@@ -532,26 +593,22 @@ function renderReassort() {
         }
         const li = el('li', 'pending-item');
         const text = el('span', 'pending-text', a.article);
-        const price = priceOf(a);
-        const small = el('small', '', `Studio ${a.studio} · ${shortDay(toKey(new Date(a.created_at)))}${a.demande_par ? ` · ${a.demande_par}` : ''}`);
-        if (price != null) {
-            small.append(document.createTextNode(' · '));
-            small.append(el('b', '', formatPrice(price)));
-        }
-        text.append(small);
+        text.append(el('small', '', `Studio ${a.studio} · ${shortDay(toKey(new Date(a.created_at)))}${a.demande_par ? ` · ${a.demande_par}` : ''}`));
         li.append(text);
         if (state.prixReady) li.append(priceField(a));
         boughtList.append(li);
     });
     const month = today().slice(0, 7);
-    const monthSpent = state.achats
-        .filter((a) => a.fait && a.created_at.slice(0, 7) === month && priceOf(a) != null)
-        .reduce((sum, a) => sum + priceOf(a), 0);
-    $('boughtSummary').textContent = `Achats déjà faits (${bought.length})${monthSpent ? ` · ${formatPrice(monthSpent)} ce mois` : ''}`;
-    $('boughtWrap').hidden = state.editing || !bought.length;
+    const boughtMonth = bought.filter((a) => a.created_at.slice(0, 7) === month);
+    const monthSpent = boughtMonth.filter((a) => priceOf(a) != null).reduce((sum, a) => sum + priceOf(a), 0);
+    $('boughtSummary').textContent = boughtMonth.length
+        ? `Achats faits ce mois : ${boughtMonth.length}${monthSpent ? ` · ${formatPrice(monthSpent)}` : ''}`
+        : `Voir les achats faits (${bought.length})`;
+    $('boughtWrap').hidden = !bought.length;
+    $('pendingWrap').hidden = state.editing;
 }
 
-// Champ « Prix € » d'un achat : enregistré avec le bouton « Enregistrer le suivi »
+// Champ « Prix € » d'un achat : enregistré avec le bouton « Terminer ma journée »
 function priceField(achat) {
     const wrap = el('label', 'price');
     const input = el('input', priceChanged(achat) ? 'changed' : '');
@@ -580,17 +637,24 @@ function priceField(achat) {
 function renderNotes() {
     $('notesNotice').hidden = state.notesReady;
     $('noteInput').hidden = !state.notesReady;
+    $('problemToggle').hidden = !state.notesReady;
+    $('problemToggle').setAttribute('aria-pressed', String(state.draft.problem));
+    $('noteInput').placeholder = state.draft.problem ? 'Décris le problème : quoi, où ?' : 'Un souci, une casse, une info pour la prochaine ?';
     const list = $('notesList');
     list.replaceChildren();
-    state.notes.forEach((note) => {
-        const li = el('li', `note${note.day === state.day ? ' today' : ''}`);
+    const shown = state.notesExpanded ? state.notes : state.notes.slice(0, NOTES_SHOWN);
+    shown.forEach((note) => {
+        const li = el('li', `note${note.text.startsWith('⚠') ? ' problem' : ''}`);
         const main = el('div', 'note-main');
-        const when = note.day === state.day ? (relativeDay(note.day) || 'Ce jour') : shortDay(note.day);
+        const when = relativeDay(note.day) || shortDay(note.day);
         main.append(el('span', 'note-when', `${when}${note.author ? ` · ${note.author}` : ''}`));
         main.append(document.createTextNode(note.text));
-        li.append(main, iconBtn('close', 'Supprimer cette transmission', () => deleteNote(note)));
+        li.append(main, iconBtn('close', 'Supprimer ce message', () => deleteNote(note)));
         list.append(li);
     });
+    const more = state.notes.length - NOTES_SHOWN;
+    $('moreNotes').hidden = more <= 0;
+    $('moreNotes').textContent = state.notesExpanded ? 'Masquer les anciens messages' : `Voir les ${more} message${more > 1 ? 's' : ''} plus ancien${more > 1 ? 's' : ''}`;
 }
 
 function renderCalendar() {
@@ -636,7 +700,7 @@ function renderCalendar() {
         if (full) labels.push('ménage fait');
         else if (count) labels.push(`ménage ${count}/${ids.size}`);
         if (hoursByDay[key]) labels.push(`${formatHours(hoursByDay[key])} de ménage`);
-        if (notesByDay[key]) labels.push('transmission');
+        if (notesByDay[key]) labels.push('message');
         cell.setAttribute('aria-label', labels.join(', '));
         cell.addEventListener('click', () => openDay(key));
         grid.append(cell);
@@ -713,7 +777,13 @@ function toggleAllMenage() {
 }
 function setHours(h) {
     if (isFuture()) return;
-    state.draft.hours = Math.min(MAX_HOURS, Math.max(0, Math.round(h * 2) / 2));
+    state.draft.hours = Math.min(MAX_HOURS, Math.max(0, Math.round(h / HOURS_STEP) * HOURS_STEP));
+    afterDraftChange();
+}
+// Un appui sur le choix déjà sélectionné l'annule
+function setStock(item, value) {
+    if (isFuture()) return;
+    state.draft.stock[item.id] = stockOf(item) === value ? null : value;
     afterDraftChange();
 }
 function toggleNeed(article) {
@@ -727,7 +797,14 @@ function toggleNeed(article) {
 function addNeed(article) {
     const key = norm(article);
     if (pendingAchats().some((a) => a.studio === state.studio && norm(a.article) === key)) {
-        toast(`« ${article} » est déjà dans la liste à acheter`);
+        toast(`« ${article} » est déjà dans la liste de courses`);
+        return;
+    }
+    // Produit suivi dans le stock : on passe par ses boutons pour éviter un doublon
+    const tracked = restockItems().find((i) => norm(productName(i.label)) === key);
+    if (tracked) {
+        if (!['racheter', 'urgent'].includes(stockOf(tracked))) state.draft.stock[tracked.id] = 'racheter';
+        afterDraftChange();
         return;
     }
     if (!state.draft.needs.some((n) => norm(n) === key)) state.draft.needs.push(article);
@@ -743,7 +820,7 @@ function toggleBought(id) {
 function choosePerson(name) {
     if (name === state.person) return;
     const changes = draftChanges();
-    if (changes.hours && !confirm('Les heures saisies ne sont pas enregistrées. Changer de personne quand même ?')) return;
+    if (changes.hours && !confirm('Tes heures ne sont pas enregistrées. Changer de personne quand même ?')) return;
     state.person = name;
     store('ml_person', name);
     state.draft.hours = personHours();
@@ -752,21 +829,30 @@ function choosePerson(name) {
 }
 
 // ---------- Enregistrement ----------
-async function notifyNeeds(rows) {
-    const lines = rows.map((a) => `• ${a.article}`).join('\n');
+// Un seul email par enregistrement : produits à racheter et/ou problème signalé
+async function notifyTeam(rows, problem) {
+    const urgent = rows.filter(isUrgent);
+    const lines = rows.map((a) => `• ${a.article}${isUrgent(a) ? ' (URGENT)' : ''}`);
+    if (problem) lines.push(`Problème signalé : ${problem}`);
+    const subject = problem && !rows.length
+        ? `Problème signalé — ${STUDIO_NAMES[state.studio]}`
+        : `${urgent.length ? 'URGENT · ' : ''}Courses à prévoir — ${STUDIO_NAMES[state.studio]} (${rows.length} produit${rows.length > 1 ? 's' : ''})`;
+    const body = {
+        _subject: subject,
+        _template: 'table',
+        _captcha: 'false',
+        Studio: STUDIO_NAMES[state.studio],
+        Date: formatDay(state.day),
+        'Signalé par': state.person || '-',
+    };
+    if (urgent.length) body.Urgent = urgent.map((a) => a.article).join(', ');
+    if (rows.length > urgent.length) body['À racheter cette semaine'] = rows.filter((a) => !isUrgent(a)).map((a) => a.article).join(', ');
+    if (problem) body['Problème'] = problem;
+    body.message = lines.join('\n');
     const response = await fetch(NOTIFY_ENDPOINT, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-        body: JSON.stringify({
-            _subject: `Réassort à prévoir — Studio ${state.studio} (${rows.length} produit${rows.length > 1 ? 's' : ''})`,
-            _template: 'table',
-            _captcha: 'false',
-            Studio: state.studio,
-            Date: formatDay(state.day),
-            'Signalé par': state.person || '-',
-            Produits: rows.map((a) => a.article).join(', '),
-            message: lines,
-        }),
+        body: JSON.stringify(body),
     });
     let data = {};
     try { data = await response.json(); } catch { /* réponse non JSON */ }
@@ -780,17 +866,24 @@ async function saveSuivi() {
     if (!state.person) {
         $('personSeg').classList.add('needs-choice');
         window.scrollTo({ top: 0, behavior: 'smooth' });
-        setStatus('error', 'Choisissez qui vous êtes (en haut, « Qui ? ») puis appuyez à nouveau sur « Enregistrer le suivi ».');
+        setStatus('error', 'Choisis qui tu es (en haut, « Qui ? ») puis appuie à nouveau sur « Terminer ma journée ».');
         return;
     }
     const changes = draftChanges();
     const d = state.draft;
+    if (d.problem && !d.note.trim()) {
+        setStatus('error', 'Décris le problème en quelques mots dans « Un mot pour l’équipe », puis appuie à nouveau sur « Terminer ma journée ».');
+        $('noteInput').focus();
+        return;
+    }
     const failed = [];
     const saved = [];
+    const newNeeds = [];
+    let problemText = '';
     let emailNote = '';
     setStatus('saving', 'Enregistrement en cours…');
 
-    // 1. Ménage et réassort remis
+    // 1. Ménage coché et produits « il en reste »
     if (changes.added.length || changes.removed.length) {
         try {
             if (changes.added.length) {
@@ -828,30 +921,28 @@ async function saveSuivi() {
         }
     }
 
-    // 3. Produits manquants (sans doublon avec la liste à acheter)
-    if (changes.needs) {
+    // 3. Stock : produits à racheter (sans doublon avec la liste de courses), urgence modifiée, besoin annulé
+    if (changes.needs || changes.stockCount) {
+        const ops = changes.stock;
         const existing = new Set(pendingAchats().filter((a) => a.studio === state.studio).map((a) => norm(a.article)));
-        const fresh = d.needs.filter((n) => !existing.has(norm(n)));
+        const fresh = ops.inserts.concat(d.needs.map((article) => ({ article, urgent: false })))
+            .filter((need, i, all) => !existing.has(norm(need.article)) && all.findIndex((n) => norm(n.article) === norm(need.article)) === i);
         try {
             if (fresh.length) {
                 const rows = await must(supabase.from('menage_achats')
-                    .insert(fresh.map((article) => ({ article, studio: state.studio, demande_par: state.person })))
+                    .insert(fresh.map((need) => ({ article: need.article, studio: state.studio, demande_par: state.person, note: need.urgent ? URGENT : null })))
                     .select());
-                try {
-                    await notifyNeeds(rows);
-                    emailNote = ` Email envoyé à ${NOTIFY_EMAIL}.`;
-                } catch (error) {
-                    console.error(error);
-                    emailNote = /activat/i.test(error.message)
-                        ? ` ⚠ Email non envoyé : le formulaire FormSubmit attend son activation (lien « Activate Form » envoyé à ${NOTIFY_EMAIL}). Le besoin reste visible dans « À acheter ».`
-                        : ` ⚠ Email non envoyé (${error.message}). Le besoin reste visible dans « À acheter ».`;
-                }
+                newNeeds.push(...rows);
             }
+            for (const update of ops.updates) {
+                await must(supabase.from('menage_achats').update({ note: update.note }).eq('id', update.id));
+            }
+            if (ops.deletes.length) await must(supabase.from('menage_achats').delete().in('id', ops.deletes));
             d.needs = [];
-            saved.push('réassort');
+            saved.push('stock');
         } catch (error) {
             console.error(error);
-            failed.push('produits manquants');
+            failed.push('stock');
         }
     }
 
@@ -885,16 +976,32 @@ async function saveSuivi() {
         }
     }
 
-    // 5. Transmission
+    // 5. Mot pour l'équipe (ou problème signalé)
     if (changes.note) {
         try {
-            await must(supabase.from('menage_notes').insert({ day: state.day, studio: state.studio, author: state.person, text: d.note.trim() }));
+            const text = `${d.problem ? PROBLEM_PREFIX : ''}${d.note.trim()}`;
+            await must(supabase.from('menage_notes').insert({ day: state.day, studio: state.studio, author: state.person, text }));
+            if (d.problem) problemText = d.note.trim();
             d.note = '';
+            d.problem = false;
             $('noteInput').value = '';
-            saved.push('transmission');
+            saved.push(problemText ? 'problème signalé' : 'message');
         } catch (error) {
             console.error(error);
-            failed.push('transmission');
+            failed.push('message');
+        }
+    }
+
+    // Email à l'équipe : nouveaux produits à racheter et/ou problème signalé
+    if (newNeeds.length || problemText) {
+        try {
+            await notifyTeam(newNeeds, problemText);
+            emailNote = ` Email envoyé à ${NOTIFY_EMAIL}.`;
+        } catch (error) {
+            console.error(error);
+            emailNote = /activat/i.test(error.message)
+                ? ` ⚠ Email non envoyé : le formulaire FormSubmit attend son activation (lien « Activate Form » envoyé à ${NOTIFY_EMAIL}). L’information reste visible sur cette page.`
+                : ` ⚠ Email non envoyé (${error.message}). L’information reste visible sur cette page.`;
         }
     }
 
@@ -903,20 +1010,21 @@ async function saveSuivi() {
         await loadDay();
     } catch (error) {
         console.error(error);
-        setStatus('error', '⚠ Impossible de relire la base : vérifiez la connexion. Les informations n’ont peut-être pas été enregistrées.');
+        setStatus('error', '⚠ Impossible de vérifier l’enregistrement : vérifie ta connexion. Tes informations n’ont peut-être pas été enregistrées.');
         return;
     }
     const savedIds = new Set(state.checks.map((c) => c.item_id));
-    const checksOk = savedIds.size === d.checked.size && [...d.checked].every((id) => savedIds.has(id));
+    const desired = desiredChecks();
+    const checksOk = savedIds.size === desired.size && [...desired].every((id) => savedIds.has(id));
     if (!checksOk && !failed.includes('ménage')) failed.push('ménage (vérification)');
     if (state.heuresReady && personHours() !== d.hours && !failed.includes('heures')) failed.push('heures (vérification)');
 
     const time = formatTime(new Date().toISOString());
     if (failed.length) {
-        setStatus('error', `✕ Non enregistré : ${failed.join(', ')}.${saved.length ? ` Enregistré : ${saved.join(', ')}.` : ''} Vérifiez la connexion puis réessayez.${emailNote}`);
+        setStatus('error', `✕ Non enregistré : ${failed.join(', ')}.${saved.length ? ` Enregistré : ${saved.join(', ')}.` : ''} Vérifie ta connexion puis réessaie.${emailNote}`);
     } else {
         resetDraft();
-        setStatus('ok', `✓ Suivi enregistré à ${time} (${saved.join(', ') || 'aucun changement'}).${emailNote}`);
+        setStatus('ok', `✓ Journée enregistrée à ${time} (${saved.join(', ') || 'aucun changement'}).${emailNote}`);
     }
     render();
 }
@@ -989,6 +1097,7 @@ async function deleteItem(item) {
         await must(supabase.from('menage_items').delete().eq('id', item.id));
         state.items = state.items.filter((i) => i.id !== item.id);
         state.draft.checked.delete(item.id);
+        delete state.draft.stock[item.id];
         toast('✓ Retiré de la liste');
     } catch (error) {
         console.error(error);
@@ -998,14 +1107,14 @@ async function deleteItem(item) {
 }
 
 async function deleteNote(note) {
-    if (!confirm('Supprimer cette transmission ?')) return;
+    if (!confirm('Supprimer ce message ?')) return;
     try {
         await must(supabase.from('menage_notes').delete().eq('id', note.id));
         state.notes = state.notes.filter((n) => n.id !== note.id);
-        toast('✓ Transmission supprimée');
+        toast('✓ Message supprimé');
     } catch (error) {
         console.error(error);
-        toast('✕ Erreur : transmission non supprimée');
+        toast('✕ Erreur : message non supprimé');
     }
     render();
 }
@@ -1071,8 +1180,8 @@ $('prevMonth').addEventListener('click', () => shiftMonth(-1));
 $('nextMonth').addEventListener('click', () => shiftMonth(1));
 
 $('allDone').addEventListener('click', toggleAllMenage);
-$('hoursMinus').addEventListener('click', () => setHours(state.draft.hours - 0.5));
-$('hoursPlus').addEventListener('click', () => setHours(state.draft.hours + 0.5));
+$('hoursMinus').addEventListener('click', () => setHours(state.draft.hours - HOURS_STEP));
+$('hoursPlus').addEventListener('click', () => setHours(state.draft.hours + HOURS_STEP));
 document.querySelectorAll('#hoursQuick .chip').forEach((c) => c.addEventListener('click', () => setHours(Number(c.dataset.h))));
 
 $('needForm').addEventListener('submit', (e) => {
@@ -1087,6 +1196,9 @@ $('noteInput').addEventListener('input', (e) => {
     if (state.save.kind === 'ok' || state.save.kind === 'error') state.save = { kind: '', text: '' };
     renderSaveBar();
 });
+
+$('problemToggle').addEventListener('click', () => { state.draft.problem = !state.draft.problem; afterDraftChange(); });
+$('moreNotes').addEventListener('click', () => { state.notesExpanded = !state.notesExpanded; renderNotes(); });
 
 $('editToggle').addEventListener('click', () => { state.editing = !state.editing; render(); });
 $('addMenageForm').addEventListener('submit', (e) => {

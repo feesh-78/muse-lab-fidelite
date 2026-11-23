@@ -1,0 +1,36 @@
+# Ajout unique des produits de stock de la maquette (sans doublon), puis ce fichier est supprimé
+name: Ajout produits stock
+on:
+  push:
+    branches: [claude/kind-knuth-gqn1lf]
+permissions:
+  contents: read
+jobs:
+  ajout:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Produits
+        run: |
+          KEY=$(grep -oE "eyJ[^']+" supabase-config.js) python3 - <<'PY'
+          import json, os, re, unicodedata, urllib.request
+          URL = 'https://nxqttyosjjirqtcvfkbk.supabase.co/rest/v1/menage_items'
+          KEY = os.environ['KEY']
+          H = {'apikey': KEY, 'Authorization': 'Bearer ' + KEY, 'Content-Type': 'application/json', 'Prefer': 'return=representation'}
+          def call(url, data=None):
+              req = urllib.request.Request(url, data=json.dumps(data).encode() if data else None, headers=H, method='POST' if data else 'GET')
+              return json.load(urllib.request.urlopen(req))
+          def norm(s):
+              s = re.sub(r'^r[ée]assort\s*', '', s.strip(), flags=re.I).lower()
+              return ''.join(c for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) != 'Mn')
+          items = [i for i in call(URL + '?select=id,list,label,position') if i['list'] == 'checklist']
+          have = {norm(i['label']) for i in items}
+          pos = max([i['position'] for i in items] or [0])
+          new = []
+          for name in ['Papier toilette', 'Savon mains', 'Sacs poubelle', 'Produit sol', 'Produit vitres']:
+              if norm(name) not in have:
+                  pos += 1
+                  new.append({'list': 'checklist', 'label': name, 'position': pos})
+          print('ajoutés :', [r['label'] for r in call(URL, new)] if new else 'aucun')
+          print('liste :', [i['label'] for i in sorted(call(URL + '?select=label,position,list&list=eq.checklist'), key=lambda i: i['position'])])
+          PY
