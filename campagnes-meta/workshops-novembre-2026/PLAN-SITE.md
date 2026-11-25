@@ -115,3 +115,22 @@ Le workshop est annulé faute d'inscrites.
 - Page Events : l'image de partage (Rank Math) et l'image mise en avant sont remplacées par la couverture « workshops novembre 2026 Montigny ».
 - Bloc « nos events » : les nouveaux visuels Clip Performance (média 5161) et Lady Fusion (média 5162) sont repris.
 - Rien n'a été modifié dans Bsport ni dans Meta.
+
+## 8. 25 novembre 2026 : workshops passés et à venir
+
+Sauvegardes d'avant modification dans la session (bk/maj_20261125).
+- Passés en « Terminé » : Commercial Girly (14/11), Commercial (15/11), Clip Performance (21/11), Heels Initiation, Afro Dancehall et Street Jazz (22/11).
+  - Pastille « Terminé », boutons « Nos prochains événements » et messages de fin.
+  - Widget Bsport retiré, pour éviter de réserver une autre séance de la même activité.
+  - Pages conservées pour le SEO.
+- Page Events :
+  - Lady Fusion seule dans « à venir ».
+  - Les 6 workshops passés en tête des « workshops passés », du plus récent au plus ancien.
+  - Texte « workshops de novembre » remplacé par « prochains workshops ».
+- Bloc « nos events » (composant 4370) : Lady Fusion seule.
+- Bandeau : « Prochain workshop : Lady Fusion avec Lory · samedi 28 nov. · Boulogne (92) », lien vers sa page. Vitesse inchangée (32 px/s sur desktop, 29 sur mobile).
+- Planning Boulogne : le message annonce Lady Fusion (28/11).
+- Lady Fusion :
+  - image mise en avant = son affiche (média 5162), texte alternatif ajouté (et sur 5161) ;
+  - tarif et niveau toujours « à venir » (non communiqués).
+- Aucun nouveau workshop après le 28/11 n'est connu côté site, et Bsport n'est pas accessible depuis la session.
