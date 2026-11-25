@@ -19,3 +19,12 @@ Les sauvegardes d'avant les modifications sont dans la session Claude (bk/bf_202
 - Correctif : les styles critiques sont maintenant posés directement dans le HTML (widget HTML `bf-css-critique`, `<style id="ml-bf-critical">`) sur l'accueil 78, l'accueil 92 et Tarifs. Ils couvrent la section Black Friday (colonne centrée, fond noir, flyer entier, bouton dessous) et la marge du titre de l'accueil 92 (136 px sur mobile, 156 px sur tablette, 80 px sur desktop). Le HTML est rechargé à chaque visite, donc indépendant de la feuille en cache.
 - Vérifié sur les URL publiques sans paramètre, non connecté, en 390, 430, 768 et 1440 px. Également vérifié en simulant une feuille CSS périmée.
 - Preuves : preuves-correctifs-12-11.png.
+
+## 25/11 : Black Friday retiré de tout le site
+
+Sauvegardes d'avant retrait dans la session (bk/bf_off_20261125).
+- Sections #black-friday retirées de l'accueil 78, de l'accueil 92 et de Tarifs. L'ancre #offres reste sur Tarifs, sans effet visible.
+- La correction du titre de l'accueil 92 (styles critiques posés dans le HTML) est déplacée dans le bloc titre (widget `hero92-offset-critique`). Elle est donc conservée.
+- Pop-up 3509 : contenu et réglages d'avant le Black Friday rétablis (Cours samedis 92 / Viens avec une proche). Déclencheurs inchangés.
+- Bandeau : retour aux messages « Workshops de novembre … réserve ta place » et « Découvrir tous nos évènements ». Durée de l'animation passée de 40 à 28 s pour garder l'accélération (32 px/s sur desktop, 29 px/s sur mobile).
+- Widgets Bsport intacts, dont le widget de packs 602104 sur Tarifs. Rien n'a été modifié dans Bsport.
