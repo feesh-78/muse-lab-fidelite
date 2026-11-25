@@ -134,3 +134,5 @@ Sauvegardes d'avant modification dans la session (bk/maj_20261125).
   - image mise en avant = son affiche (média 5162), texte alternatif ajouté (et sur 5161) ;
   - tarif et niveau toujours « à venir » (non communiqués).
 - Aucun nouveau workshop après le 28/11 n'est connu côté site, et Bsport n'est pas accessible depuis la session.
+
+- 25/11, suite : Lady Fusion passe à 25 € et tous niveaux (page et SEO Rank Math). Il reste le seul workshop à venir, sans message « prochaines dates ».
