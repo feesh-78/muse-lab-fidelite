@@ -46,7 +46,7 @@ jobs:
       - name: Vérifier que le site en ligne sert la nouvelle version
         run: |
           for i in 1 2 3 4 5 6; do
-            if curl -fsS "https://menage.themuselab.fr/menage.js?v=${GITHUB_SHA}" | grep -q "saveSuivi"; then
+            if curl -fsS "https://menage.themuselab.fr/menage.js?v=${GITHUB_SHA}" | grep -q "stockOps"; then
               echo "Site à jour : https://menage.themuselab.fr"; exit 0
             fi
             sleep 20

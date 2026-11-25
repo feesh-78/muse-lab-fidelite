@@ -25,8 +25,8 @@
             <div class="ctx-row">
                 <span class="ctx-label">Studio</span>
                 <div class="seg" id="studioSeg">
-                    <button type="button" data-studio="78">78</button>
-                    <button type="button" data-studio="92">92</button>
+                    <button type="button" data-studio="78">Montigny 78</button>
+                    <button type="button" data-studio="92">Boulogne 92</button>
                 </div>
             </div>
             <div class="ctx-row ctx-date" id="dateRow">
@@ -50,13 +50,18 @@
 
     <main class="page">
         <div id="setupNotice" class="notice" hidden>
-            Connexion à la base impossible ou tables manquantes. Vérifiez la connexion internet, puis rechargez la page.
+            Connexion impossible. Vérifie ta connexion internet, puis recharge la page.
         </div>
 
         <!-- ================= Suivi du jour ================= -->
         <section id="suiviView">
             <div id="futureNotice" class="notice" hidden>
-                Ce jour n’est pas encore arrivé : seule la transmission peut être préparée.
+                Ce jour n’est pas encore arrivé : tu peux seulement préparer un mot pour l’équipe.
+            </div>
+
+            <div class="tip">
+                <span class="tip-icon" aria-hidden="true">🌹</span>
+                <p>Coche au fur et à mesure. À la fin, dis-nous ce qu’il reste en stock : c’est ce qui fait la liste de courses.</p>
             </div>
 
             <!-- 1. Ménage -->
@@ -65,6 +70,7 @@
                     <h2><span class="num">1</span>Ménage</h2>
                     <span class="count" id="menageCount"></span>
                 </div>
+                <div class="progress" aria-hidden="true"><div class="progress-fill" id="menageProgress"></div></div>
                 <ul class="task-list" id="menageList"></ul>
                 <form class="add-row" id="addMenageForm" hidden>
                     <input type="text" id="addMenageInput" placeholder="Nouvelle étape de ménage…" maxlength="120" required>
@@ -73,72 +79,76 @@
                 <button type="button" class="btn-ghost" id="allDone">Tout est fait</button>
             </section>
 
-            <!-- 2. Heures -->
-            <section class="block" id="blockHeures">
-                <div class="block-head">
-                    <h2><span class="num">2</span>Heures passées</h2>
-                    <span class="sub" id="hoursWho"></span>
-                </div>
-                <div id="heuresNotice" class="notice" hidden>
-                    Le suivi des heures n’est pas activé dans la base (table <code>menage_heures</code> absente).
-                </div>
-                <div class="stepper" id="hoursStepper">
-                    <button type="button" class="step" id="hoursMinus" aria-label="Moins 30 minutes">−</button>
-                    <output id="hoursValue" aria-live="polite">0h</output>
-                    <button type="button" class="step" id="hoursPlus" aria-label="Plus 30 minutes">+</button>
-                </div>
-                <div class="chips" id="hoursQuick">
-                    <button type="button" class="chip" data-h="1">1h</button>
-                    <button type="button" class="chip" data-h="1.5">1h30</button>
-                    <button type="button" class="chip" data-h="2">2h</button>
-                    <button type="button" class="chip" data-h="2.5">2h30</button>
-                    <button type="button" class="chip" data-h="3">3h</button>
-                    <button type="button" class="chip" data-h="4">4h</button>
-                </div>
-                <p class="hint" id="hoursOthers"></p>
-            </section>
-
-            <!-- 3. Réassort -->
+            <!-- 2. Le stock -->
             <section class="block" id="blockReassort">
                 <div class="block-head">
-                    <h2><span class="num">3</span>Réassort</h2>
+                    <h2><span class="num">2</span>Le stock</h2>
                 </div>
-                <p class="hint">« Remis » : c’est fait. « Manque » : à acheter, l’équipe est prévenue.</p>
-                <ul class="restock-list" id="restockList"></ul>
+                <p class="hint">Pour chaque produit, réponds en un clic. <strong>Urgent</strong> = il faut en racheter avant le prochain cours. <strong>À racheter</strong> = ça peut attendre la semaine.</p>
+                <ul class="stock-list" id="restockList"></ul>
                 <form class="add-row" id="addRestockForm" hidden>
                     <input type="text" id="addRestockInput" placeholder="Nouveau produit (ex. Savon)…" maxlength="60" required>
                     <button type="submit" class="btn-small">Ajouter</button>
                 </form>
                 <form class="add-row" id="needForm">
                     <input type="text" id="needInput" placeholder="Autre produit…" maxlength="120" required>
-                    <button type="submit" class="btn-small">Signaler</button>
+                    <button type="submit" class="btn-small">Ajouter</button>
                 </form>
                 <div id="prixNotice" class="notice" hidden>
                     Les prix ne sont pas activés dans la base (colonne <code>prix</code> absente) :
                     exécutez une fois <a href="https://github.com/feesh-78/muse-lab-fidelite/blob/main/menage-prix.sql" target="_blank" rel="noopener">menage-prix.sql</a>
                     dans <a href="https://supabase.com/dashboard/project/nxqttyosjjirqtcvfkbk/sql/new" target="_blank" rel="noopener">l'éditeur SQL Supabase</a>.
                 </div>
-                <div class="pending" id="pendingWrap" hidden>
-                    <h3>À acheter <small>· « Acheté » + prix payé</small></h3>
+                <div class="shopping" id="pendingWrap" hidden>
+                    <h3>Liste de courses · les 2 studios</h3>
                     <ul class="pending-list" id="pendingList"></ul>
+                    <details class="history" id="boughtWrap" hidden>
+                        <summary id="boughtSummary">Achats faits</summary>
+                        <ul class="pending-list" id="boughtList"></ul>
+                    </details>
                 </div>
-                <details class="history" id="boughtWrap" hidden>
-                    <summary id="boughtSummary">Achats déjà faits</summary>
-                    <ul class="pending-list" id="boughtList"></ul>
-                </details>
             </section>
 
-            <!-- 4. Transmission -->
+            <!-- 3. Mes heures -->
+            <section class="block" id="blockHeures">
+                <div class="block-head">
+                    <h2><span class="num">3</span>Mes heures</h2>
+                    <span class="sub" id="hoursWho"></span>
+                </div>
+                <div id="heuresNotice" class="notice" hidden>
+                    Le suivi des heures n’est pas activé dans la base (table <code>menage_heures</code> absente).
+                </div>
+                <div class="stepper" id="hoursStepper">
+                    <button type="button" class="step step-minus" id="hoursMinus" aria-label="Moins 15 minutes">−</button>
+                    <output id="hoursValue" aria-live="polite">0h</output>
+                    <button type="button" class="step" id="hoursPlus" aria-label="Plus 15 minutes">+</button>
+                </div>
+                <div class="chips" id="hoursQuick">
+                    <button type="button" class="chip" data-h="0.25">15 min</button>
+                    <button type="button" class="chip" data-h="0.5">30 min</button>
+                    <button type="button" class="chip" data-h="0.75">45 min</button>
+                    <button type="button" class="chip" data-h="1">1h</button>
+                    <button type="button" class="chip" data-h="1.25">1h15</button>
+                    <button type="button" class="chip" data-h="1.5">1h30</button>
+                    <button type="button" class="chip" data-h="1.75">1h45</button>
+                    <button type="button" class="chip" data-h="2">2h</button>
+                </div>
+                <p class="hint" id="hoursOthers"></p>
+            </section>
+
+            <!-- 4. Un mot pour l'équipe -->
             <section class="block" id="blockNote">
                 <div class="block-head">
-                    <h2><span class="num">4</span>Transmission</h2>
+                    <h2><span class="num">4</span>Un mot pour l’équipe</h2>
                     <span class="sub">facultatif</span>
                 </div>
                 <div id="notesNotice" class="notice" hidden>
-                    Les transmissions ne sont pas activées dans la base (table <code>menage_notes</code> absente).
+                    Les messages ne sont pas activés dans la base (table <code>menage_notes</code> absente).
                 </div>
-                <textarea id="noteInput" rows="2" maxlength="280" placeholder="Une info pour la prochaine équipe ?"></textarea>
+                <textarea id="noteInput" rows="3" maxlength="280" placeholder="Un souci, une casse, une info pour la prochaine ?"></textarea>
+                <button type="button" class="btn-dashed" id="problemToggle" aria-pressed="false">⚠ Signaler un problème</button>
                 <ul class="notes" id="notesList"></ul>
+                <button type="button" class="link-btn link-left" id="moreNotes" hidden></button>
             </section>
 
             <div class="list-tools">
@@ -167,15 +177,15 @@
                     <span><i class="lg lg-full"></i>Ménage fait</span>
                     <span><i class="lg lg-part"></i>Commencé</span>
                     <span><b class="lg-hours">2h</b>Heures</span>
-                    <span><i class="lg lg-note"></i>Transmission</span>
+                    <span><i class="lg lg-note"></i>Message</span>
                 </div>
-                <p class="hint">Touchez un jour pour ouvrir son suivi.</p>
+                <p class="hint">Touche un jour pour ouvrir son suivi.</p>
             </div>
             <div class="cal-summary" id="calSummary"></div>
             <div class="block">
                 <h2 class="block-title">Heures du mois</h2>
                 <table class="recap-table">
-                    <thead><tr><th></th><th>Studio 78</th><th>Studio 92</th><th>Total</th></tr></thead>
+                    <thead><tr><th></th><th>Montigny 78</th><th>Boulogne 92</th><th>Total</th></tr></thead>
                     <tbody id="recapBody"></tbody>
                 </table>
             </div>
@@ -185,7 +195,8 @@
     <!-- Action principale -->
     <div class="save-bar" id="saveBar">
         <p class="save-status" id="saveStatus" role="status" aria-live="polite"></p>
-        <button type="button" class="btn-save" id="saveBtn">Enregistrer le suivi</button>
+        <p class="save-recap" id="saveRecap"></p>
+        <button type="button" class="btn-save" id="saveBtn">Terminer ma journée</button>
     </div>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
