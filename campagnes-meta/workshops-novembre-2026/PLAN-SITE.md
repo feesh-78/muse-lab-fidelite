@@ -136,3 +136,10 @@ Sauvegardes d'avant modification dans la session (bk/maj_20261125).
 - Aucun nouveau workshop après le 28/11 n'est connu côté site, et Bsport n'est pas accessible depuis la session.
 
 - 25/11, suite : Lady Fusion passe à 25 € et tous niveaux (page et SEO Rank Math). Il reste le seul workshop à venir, sans message « prochaines dates ».
+
+## 9. 26/11 : workshop Heels de dernière minute, samedi 28/11, 16h-18h, Boulogne, 25 €, tous niveaux
+
+- Page /workshop-heels-boulogne-92/ (id 5194), SEO Rank Math. Pas de nom de prof : il ne figure pas sur l affiche.
+- Visuel story entier sur la page (média 5192). Version 4:5 pour les cartes (média 5193).
+- Ajouté sur la page Events (après Lady Fusion), dans le bloc nos events, dans le bandeau et dans le message du planning Boulogne.
+- Réservation : calendrier du studio de Boulogne (établissement 20585), en attendant le widget dédié. Bsport n est pas accessible depuis la session.
