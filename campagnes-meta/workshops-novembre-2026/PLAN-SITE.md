@@ -143,3 +143,4 @@ Sauvegardes d'avant modification dans la session (bk/maj_20261125).
 - Visuel story entier sur la page (média 5192). Version 4:5 pour les cartes (média 5193).
 - Ajouté sur la page Events (après Lady Fusion), dans le bloc nos events, dans le bandeau et dans le message du planning Boulogne.
 - Réservation : calendrier du studio de Boulogne (établissement 20585), en attendant le widget dédié. Bsport n est pas accessible depuis la session.
+- 26/11, suite : widget dédié intégré (conteneur bsport-widget-338923, activité 187837, établissement 20585, séance 46243519 vérifiée par Philippe dans Bsport). Prof : Maryse Norah, ajoutée sur la page, les cartes et le SEO. Texte « avance jusqu au samedi » retiré.
