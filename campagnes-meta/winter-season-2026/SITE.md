@@ -53,3 +53,7 @@ Sauvegardes d'avant les modifications dans la session Claude (bk/winter_20261128
 - Nouveau titre gris non cliquable « Ressources » (`e9288f1`, même classe que « Plannings ») après « Location de salle ».
 - Flocons animés en fond du panneau (même effet que le hero de l'accueil, désactivés si « réduire les animations »).
 - Contrôlé en 375, 390, 430 et 1280 px : pas de chevauchement ni de débordement.
+
+## Accueil 92 (28/11)
+- Espace sous le menu : padding haut du bloc 477e5426 porté à 200 px (ordinateur), 196 px (tablette) et 172 px (téléphone), via le style critique `ml-hero92-offset` ; le titre ne colle plus au menu.
+- Flocons dans le hero rouge, même effet que sur l accueil 78 (widget `ml-snow-92`).
