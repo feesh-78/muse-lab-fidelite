@@ -82,3 +82,5 @@ Chaque page a son widget calendrier, filtré sur l'activité du workshop (avec l
   - fond d'écran → téléchargement direct.
 - **Onglets Boulogne / Montigny :** en JavaScript. Sans JavaScript, les deux listes s'affichent.
 - **À faire après validation :** publier, supprimer la page de test, ajouter le lien dans le menu, le bandeau et le hero de l'accueil.
+
+- 28/11 : les 4 visuels « gift card » dessinés sont retirés (doublon avec les cartes Bsport). Chaque colonne contient le widget Bsport, puis sa phrase descriptive.
