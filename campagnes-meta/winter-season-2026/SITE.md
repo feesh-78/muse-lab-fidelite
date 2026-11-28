@@ -37,3 +37,11 @@ Sauvegardes d'avant les modifications dans la session Claude (bk/winter_20261128
 - Coller le code du widget Bsport carte cadeau dans le bloc #acheter.
 - Liens carte cadeau en mode aperçu (`isPreview=true`) sur l'accueil 92 et sur Tarifs : à corriger après accord.
 - Ads cartes cadeaux : gérées dans la conversation Ads (aucune dépense lancée ici).
+
+## 28/11 : widget Bsport carte cadeau intégré (page 5204, bloc 55b2caa, #acheter)
+
+- Code officiel transmis par Philippe, inséré sans modification : `giftcard`, `giftcards: [16554]`, `dialogMode: 3`, conteneur `bsport-widget-105791`. D'après Bsport, une seule carte active, au montant libre.
+- Encadré aux couleurs de la page autour du widget. Les offres de Maryse (18 €, 50 €, 70 €) y sont présentées comme des montants suggérés sur une seule carte.
+- La FAQ de la page indique « durée de validité indiquée au moment de l'achat » (au lieu de fin février 2027). Le texte du bloc de l'accueil et la description SEO de la page sont alignés.
+- Isolation des styles : la règle du kit `.elementor-kit-6 button` (fond bordeaux, arrondi 28 px) et celles du thème Hello (`width:auto`, `nowrap`) déformaient la carte du widget. Elles sont neutralisées uniquement sur les boutons à image dans `#bsport-widget-105791`.
+- Vérifié avec une carte simulée (le script Bsport est bloqué dans la session) : la carte fait 420 px sur ordinateur et prend toute la largeur sur mobile, image en grand, titre sur une ligne. Les boutons de la page ne changent pas.
