@@ -39,3 +39,17 @@ Page IDs WordPress 5226 à 5236, affiches médias 5215 à 5225.
 - confirmer la date du Commercial Montigny ;
 - confirmer le niveau du Sensual Heels ;
 - puis la page /winter-season.
+
+## Mise à jour du 28/11 (soir), d'après Bsport (vérifié par Philippe)
+- Profs selon Bsport : Vae (Modern Jazz 78 et 92, Commercial 78), Dorine R (Heels 92), Luna L (Commercial 92), Maryse (les autres).
+- Commercial Montigny : **dimanche 6/12, 11h30-13h30**, page publiée. L'affiche reçue indique « samedi 5 » : elle n'est pas utilisée. La page et la carte affichent le visuel de couverture « workshops décembre Montigny » en attendant une affiche corrigée.
+- Sensual Heels : tous niveaux.
+- Nouvelle page Soirée Astro & Tirage : /soiree-astro-tirage-boulogne-92/ (dim. 13/12, 19h-21h, Boulogne, Maryse, 20 €, 10 places).
+- Page Événements et bloc « nos events » : 12 dates, conformes au tableau Bsport.
+- Lady Fusion : page mise à la corbeille, plus aucune mention en ligne.
+
+## Cartes cadeaux
+- Validité : « Valable 1 an à partir de la date d'achat » (FAQ, accueil, article de test).
+- 4 widgets Bsport, un sous chaque carte : 24458 (1 cours), 16554 (montant libre), 24460 (cours privé), 24459 (cours privé à 2).
+- Le script commun n'est chargé qu'une fois, en tête de la section. L'ancien bloc 105791 est retiré (plus de doublon).
+- L'ancre #acheter est désormais sur la section des cartes.
