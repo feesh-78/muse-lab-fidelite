@@ -46,3 +46,10 @@ Sauvegardes d'avant les modifications dans la session Claude (bk/winter_20261128
 - Isolation des styles : la règle du kit `.elementor-kit-6 button` (fond bordeaux, arrondi 28 px) et celles du thème Hello (`width:auto`, `nowrap`) déformaient la carte du widget. Elles sont neutralisées uniquement sur les boutons à image dans `#bsport-widget-105791`.
 - Vérifié avec une carte simulée (le script Bsport est bloqué dans la session) : la carte fait 420 px sur ordinateur et prend toute la largeur sur mobile, image en grand, titre sur une ligne. Les boutons de la page ne changent pas.
 - 28/11, suite : les conteneurs de la carte dans le widget (grille ou rangée prévue pour plusieurs cartes) passent sur une seule colonne pleine largeur. Carte centrée, 360 px max, image proportionnée. Vérifié avec des structures simulées en grille auto-fill et en rangée flex à 1/6. Aucun !important, boutons de la page inchangés.
+
+## Menu mobile (burger) — 28/11
+- À gauche : visuel des cartes cadeaux, avec le lien « Cartes cadeaux → » et « idée cadeau de Noël » en dessous (widget HTML `68341e0`, dans le panneau `2ba2603`).
+- L'ancienne ligne « Cartes cadeaux » de la liste (`580acff6`) est masquée dans le burger. Le menu desktop est inchangé.
+- Nouveau titre gris non cliquable « Ressources » (`e9288f1`, même classe que « Plannings ») après « Location de salle ».
+- Flocons animés en fond du panneau (même effet que le hero de l'accueil, désactivés si « réduire les animations »).
+- Contrôlé en 375, 390, 430 et 1280 px : pas de chevauchement ni de débordement.
