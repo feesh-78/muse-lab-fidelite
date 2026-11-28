@@ -56,3 +56,9 @@ Page IDs WordPress 5226 à 5236, affiches médias 5215 à 5225.
 
 ## Calendriers Bsport dédiés (codes fournis par Philippe, 28/11)
 Chaque page a son widget calendrier, filtré sur l'activité du workshop (avec le studio quand le code l'indique), à la place du planning générique du studio. Le script de chargement est placé une fois, juste avant le widget. Contrôle en 390 et 1440 px : 1 conteneur par page, aucune erreur JavaScript. Le rendu Bsport lui-même n'est pas visible depuis l'environnement de test (CDN bloqué).
+
+## Bloc « nos events » limité à 6 (28/11)
+- Le bloc n'affiche que les 6 prochains événements par date. Le script `ml-events-6` (widget `ml-nav-fit` du header) masque automatiquement les dates passées et fait avancer la liste.
+- Sans JavaScript, une règle CSS montre les 6 premières cartes.
+- La page Événements (4671) garde toute la liste « à venir » ; le même script y masque seulement les dates passées.
+- Les autres grilles du site ne sont pas touchées : contrôle sur 52 URLs.
