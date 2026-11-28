@@ -71,3 +71,9 @@ Sauvegardes d'avant les modifications dans la session Claude (bk/winter_20261128
   - Accueil 78 : flocons teintés de rouge et d or dans le bloc « the muse lab. Montigny (78) » (14f42ae1, widget `ml-snow-78b`).
   - Téléphone : blocs Winter et carte cadeau collés, sans bande blanche, sur les deux accueils.
   - Accueil 92, téléphone : le grand « 92 » de fond est descendu à 128 px, sous le menu.
+
+- 28/11 soir (3) : smartphone, pleine largeur (CSS global du header `ml-nav-fit`) pour :
+  - les blocs Winter et carte cadeau des accueils ;
+  - la section « nos events » (et les grilles d événements) ;
+  - les conteneurs des widgets Bsport dans les pages.
+  Contrôle sur 52 URLs en 390 px : 0 débordement horizontal.
