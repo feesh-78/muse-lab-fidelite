@@ -77,3 +77,9 @@ Sauvegardes d'avant les modifications dans la session Claude (bk/winter_20261128
   - la section « nos events » (et les grilles d événements) ;
   - les conteneurs des widgets Bsport dans les pages.
   Contrôle sur 52 URLs en 390 px : 0 débordement horizontal.
+
+- 28/11 soir (4) : la règle « 100vw » sur les widgets Bsport est retirée (le calendrier débordait de son cadre). Désormais, sur smartphone :
+  - la section qui contient le widget passe à 0 de marge latérale ;
+  - le calendrier et son cadre prennent toute la largeur ;
+  - les autres éléments de la section (titres, bouton) gardent 20 px.
+  Bande blanche au-dessus de « nos events » supprimée (sélecteur sans :has imbriqué).
