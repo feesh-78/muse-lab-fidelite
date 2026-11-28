@@ -62,3 +62,5 @@ Chaque page a son widget calendrier, filtré sur l'activité du workshop (avec l
 - Sans JavaScript, une règle CSS montre les 6 premières cartes.
 - La page Événements (4671) garde toute la liste « à venir » ; le même script y masque seulement les dates passées.
 - Les autres grilles du site ne sont pas touchées : contrôle sur 52 URLs.
+
+- Téléphone (≤ 767 px) : une carte par ligne. CSS inline dans le widget du script commun, sans !important ; tablette et ordinateur inchangés.
