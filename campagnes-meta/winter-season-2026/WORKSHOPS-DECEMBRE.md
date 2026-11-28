@@ -64,3 +64,21 @@ Chaque page a son widget calendrier, filtré sur l'activité du workshop (avec l
 - Les autres grilles du site ne sont pas touchées : contrôle sur 52 URLs.
 
 - Téléphone (≤ 767 px) : une carte par ligne. CSS inline dans le widget du script commun, sans !important ; tablette et ordinateur inchangés.
+
+## Page The Winter Season (28/11)
+- Elle reprend la maquette de Maryse (zip du 28/11), reconstruite dans Elementor V4 avec la police Poppins. Les visuels (cartes, tarot, polaroid, téléphone) sont extraits de la maquette.
+- La page finale `/winter-season/` (5272) est en **brouillon**. La copie de validation `/test-winter-season/` (5275) est publiée en noindex.
+- **Données corrigées par rapport à la maquette :**
+  - profs selon Bsport (Vae, Dorine R, Luna L, Maryse) ;
+  - Commercial Montigny le dimanche 6 ;
+  - Modern Jazz Boulogne de 14h à 16h ;
+  - soirée astro de 19h à 21h ;
+  - cartes cadeaux « valables 1 an à partir de la date d'achat ».
+- **Liens :**
+  - Réserver → la page de chaque workshop ;
+  - carte cadeau → /cartes-cadeaux/ ;
+  - soirée → /soiree-astro-tirage-boulogne-92/ ;
+  - Je m'inscris → le widget newsletter Bsport du pied de page (#bsport-widget-68248) ;
+  - fond d'écran → téléchargement direct.
+- **Onglets Boulogne / Montigny :** en JavaScript. Sans JavaScript, les deux listes s'affichent.
+- **À faire après validation :** publier, supprimer la page de test, ajouter le lien dans le menu, le bandeau et le hero de l'accueil.
