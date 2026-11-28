@@ -53,3 +53,6 @@ Page IDs WordPress 5226 à 5236, affiches médias 5215 à 5225.
 - 4 widgets Bsport, un sous chaque carte : 24458 (1 cours), 16554 (montant libre), 24460 (cours privé), 24459 (cours privé à 2).
 - Le script commun n'est chargé qu'une fois, en tête de la section. L'ancien bloc 105791 est retiré (plus de doublon).
 - L'ancre #acheter est désormais sur la section des cartes.
+
+## Calendriers Bsport dédiés (codes fournis par Philippe, 28/11)
+Chaque page a son widget calendrier, filtré sur l'activité du workshop (avec le studio quand le code l'indique), à la place du planning générique du studio. Le script de chargement est placé une fois, juste avant le widget. Contrôle en 390 et 1440 px : 1 conteneur par page, aucune erreur JavaScript. Le rendu Bsport lui-même n'est pas visible depuis l'environnement de test (CDN bloqué).
