@@ -57,3 +57,10 @@ Sauvegardes d'avant les modifications dans la session Claude (bk/winter_20261128
 ## Accueil 92 (28/11)
 - Espace sous le menu : padding haut du bloc 477e5426 porté à 200 px (ordinateur), 196 px (tablette) et 172 px (téléphone), via le style critique `ml-hero92-offset` ; le titre ne colle plus au menu.
 - Flocons dans le hero rouge, même effet que sur l accueil 78 (widget `ml-snow-92`).
+
+## Winter Season en ligne + blocs accueil (28/11)
+- `/winter-season/` (5272) est publiée et indexée. La page de test 5275 est à la corbeille.
+- Accueil 78 (4315) : hero → bloc Winter (`613b6fe`) → bloc carte cadeau (`42dedb1e`) → suite (planning…).
+- Accueil 92 (4316) : hero → bloc Winter (`208ed5a`) → bloc carte cadeau (`b6412ce`) → suite.
+- Les blocs sont des clones du bloc carte cadeau existant (nouveaux id), avec un CSS critique inline par id, insensible au cache. Le bloc Winter est rouge, avec la photo de la maquette et un bouton vers /winter-season/.
+- Le bandeau défilant « Winter Intensive » pointe vers /winter-season/.
