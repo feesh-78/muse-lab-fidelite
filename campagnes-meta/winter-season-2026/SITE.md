@@ -64,3 +64,5 @@ Sauvegardes d'avant les modifications dans la session Claude (bk/winter_20261128
 - Accueil 92 (4316) : hero → bloc Winter (`208ed5a`) → bloc carte cadeau (`b6412ce`) → suite.
 - Les blocs sont des clones du bloc carte cadeau existant (nouveaux id), avec un CSS critique inline par id, insensible au cache. Le bloc Winter est rouge, avec la photo de la maquette et un bouton vers /winter-season/.
 - Le bandeau défilant « Winter Intensive » pointe vers /winter-season/.
+
+- 28/11 soir : flocons du 92 rendus bien visibles (3 tailles, vitesses différentes, opacité 0.8). Menu burger : carte cadeau resserrée en haut à gauche, puis vignette « Winter Season → » (photo de la saison, lien /winter-season/) en dessous.
