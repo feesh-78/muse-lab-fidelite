@@ -66,3 +66,8 @@ Sauvegardes d'avant les modifications dans la session Claude (bk/winter_20261128
 - Le bandeau défilant « Winter Intensive » pointe vers /winter-season/.
 
 - 28/11 soir : flocons du 92 rendus bien visibles (3 tailles, vitesses différentes, opacité 0.8). Menu burger : carte cadeau resserrée en haut à gauche, puis vignette « Winter Season → » (photo de la saison, lien /winter-season/) en dessous.
+
+- 28/11 soir (2) :
+  - Accueil 78 : flocons teintés de rouge et d or dans le bloc « the muse lab. Montigny (78) » (14f42ae1, widget `ml-snow-78b`).
+  - Téléphone : blocs Winter et carte cadeau collés, sans bande blanche, sur les deux accueils.
+  - Accueil 92, téléphone : le grand « 92 » de fond est descendu à 128 px, sous le menu.
